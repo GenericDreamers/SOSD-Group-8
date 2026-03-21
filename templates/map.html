@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Map - Smart Travel</title>
+   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+  <style>#map { height: 80vh; width: 100%; }</style>
+</head>
+<body>
+    <header>
+        <h1>Map View - Smart Travel</h1>
+        <nav>
+            <a href="/">Home</a> |
+            <a href="/search">Search Places</a> |
+            <a href="/weather">Check Weather</a> |
+            <a href="/booking">Make a Booking</a> |
+            <a href="/itinerary">View Itinerary</a> |
+            <a href="/notifications">View Notifications</a> |
+            <a href="/analytics">View Analytics</a>
+        </nav>
+    </header>
+<div id="map"></div>
+<div>
+    <p>Cần làm: Hiện các marker hiển thị thông tin ở bảng Places (lấy từ database 2 cột latitude, longitude) -> Khi click vào một marker, lấy dữ liệu từ bảng Places + Review hiển thị ở Location Info Tab | có thể nên cache weather data (và cho thêm thông tin về thời tiết trong tương lai) | Implement logic hành trình | Đưa CSS ra file riêng</p>
+    <div>Location Info Tab
+        <p>Details about the selected location will appear here. Currently placeholder text. Should be shown on a floating panel a la Google Maps</p>
+    </div>
+    <div>Itinerary Tab
+        <p>As the user builds their itinerary, details about each location will appear here. Currently placeholder text.</p>
+    </div>
+</div>
+
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+<script>
+  var map = L.map('map').setView([21.028511, 105.804817], 12); // default location (Hanoi)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+    var marker = L.marker([21.028511, 105.804817]).addTo(map).remove(); // create marker but don't add to map yet
+
+var input = document.createElement('input');
+input.type = 'text';
+input.placeholder = 'Search address…';
+input.style.cssText = `
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    padding: 5px;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+`;
+document.getElementById('map').appendChild(input);
+
+var suggestionsList = document.createElement('ul');
+suggestionsList.style.cssText = `
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+`;
+document.getElementById('map').appendChild(suggestionsList);
+
+let timeout;
+let selectedIndex = -1;
+
+function goToResult(result) {
+    const lat = parseFloat(result.lat);
+    const lon = parseFloat(result.lon);
+    console.log(`Navigating to: ${result.display_name} (${lat}, ${lon})`);
+    map.setView([lat, lon], 14);
+    marker.setLatLng([lat, lon]).addTo(map);
+    suggestionsList.innerHTML = '';
+    input.value = result.display_name;
+}
+
+function updateWeather(location){
+    fetch(`./weather/current?lat=${location.lat}&lon=${location.lng}`)
+        .then(r => r.json())
+        .then(data => {
+            console.log('Current weather at map center:', data);
+            let weatherPanel = document.getElementById('weather-panel');
+            if (!weatherPanel) {
+                weatherPanel = document.createElement('div');
+                weatherPanel.id = 'weather-panel';
+                weatherPanel.style.cssText = `
+                    position: absolute;
+                    bottom: 10px;
+                    right: 10px;
+                    width: 250px;
+                    background: white;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    padding: 10px;
+                    z-index: 1000;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                `;
+                document.getElementById('map').appendChild(weatherPanel);
+            }
+            weatherPanel.innerHTML = `
+                <h3 style="margin-top: 0;">Thông tin thời tiết</h3>
+                <p>${data.location}</p>
+                <p style="margin: 4px 0;"><strong>Nhiệt độ:</strong> ${data.temperature}°C</p>
+                <p style="margin: 4px 0;"><strong>Tình trạng:</strong> ${data.weathercode}</p>
+                <p style="margin: 4px 0;"><strong>Gió:</strong> ${data.windspeed} m/s</p>
+            `;
+        });
+}
+
+input.addEventListener('input', () => {
+    clearTimeout(timeout);
+    const q = input.value.trim();
+    suggestionsList.innerHTML = '';
+    selectedIndex = -1;
+    if (!q) return;
+    timeout = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(results => {
+                const center = map.getCenter();
+                results.sort((a, b) => {
+                    const distA = Math.pow(a.lat - center.lat, 2) + Math.pow(a.lon - center.lng, 2);
+                    const distB = Math.pow(b.lat - center.lat, 2) + Math.pow(b.lon - center.lng, 2);
+                    return distA - distB;
+                });
+                suggestionsList.innerHTML = '';
+                results.slice(0, 5).forEach((result, idx) => {
+                    const li = document.createElement('li');
+                    li.textContent = result.display_name;
+                    li.style.cssText = `padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;`;
+                    li.addEventListener('mouseover', () => { li.style.background = '#f0f0f0'; });
+                    li.addEventListener('mouseout', () => { li.style.background = 'white'; });
+                    li.addEventListener('click', () => goToResult(result));
+                    suggestionsList.appendChild(li);
+                });
+            });
+    }, 300);
+});
+
+input.addEventListener('keydown', (e) => {
+    const items = suggestionsList.querySelectorAll('li');
+    if (e.key === 'ArrowDown') {
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        items.forEach(li => li.style.background = 'white');
+        if (items[selectedIndex]) items[selectedIndex].style.background = '#f0f0f0';
+    } else if (e.key === 'ArrowUp') {
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        items.forEach(li => li.style.background = 'white');
+        if (items[selectedIndex]) items[selectedIndex].style.background = '#f0f0f0';
+    } else if (e.key === 'Enter' && selectedIndex >= 0 && items[selectedIndex]) {
+        e.preventDefault();
+        const result = JSON.parse(items[selectedIndex].dataset.result || '{}');
+        goToResult(result);
+    }
+});
+
+// map.addEventListener('moveend', () => {
+//     var location;
+//     if (marker._map)
+//         location = marker.getLatLng();
+//     else
+//         location = map.getCenter();
+//     updateWeather(location);
+// });
+
+</script>
+</body>
+</html>

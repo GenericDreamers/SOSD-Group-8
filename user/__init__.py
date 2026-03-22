@@ -6,7 +6,7 @@ user_bp = Blueprint('user', __name__, url_prefix='/user')
 
 @user_bp.route("/api/delete-user/<int:user_id>", methods=["DELETE"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def delete_user(user_id):
     execute_db("DELETE FROM Users WHERE ID = ?", [user_id])
     execute_db("DELETE FROM UserProfiles WHERE UserID = ?", [user_id])
@@ -14,7 +14,7 @@ def delete_user(user_id):
 
 @user_bp.route("/api/profile/<int:user_id>", methods=["GET"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def get_profile(user_id):
     profile = query_db("SELECT * FROM UserProfiles WHERE UserID = ?", [user_id])
     if not profile:
@@ -23,7 +23,7 @@ def get_profile(user_id):
 
 @user_bp.route("/api/profile/<int:user_id>", methods=["POST"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def create_profile(user_id):
     if query_db("SELECT * FROM UserProfiles WHERE UserID = ?", [user_id]):
         return jsonify({"msg": "Profile already exists"}), 409
@@ -39,7 +39,7 @@ def create_profile(user_id):
 
 @user_bp.route("/api/profile/<int:user_id>", methods=["PUT"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def update_profile(user_id):
     requester_id = get_jwt_identity()["id"]
     if requester_id != user_id or query_db("SELECT Role FROM Users WHERE UserID = ?", [requester_id]) != "Admin":
@@ -59,7 +59,7 @@ def update_profile(user_id):
 
 @user_bp.route("/api/profile/<int:user_id>", methods=["DELETE"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def delete_profile(user_id):
     requester_id = get_jwt_identity()["id"]
     if requester_id != user_id or query_db("SELECT Role FROM Users WHERE UserID = ?", [requester_id]) != "Admin":

@@ -8,7 +8,7 @@ itinerary_bp = Blueprint('itinerary', __name__, url_prefix='/itinerary')
 
 @itinerary_bp.route("/api/create/<int:user_id>", methods=["POST"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def create(user_id):
     payload = request.form
     itinerary = {
@@ -22,7 +22,7 @@ def create(user_id):
 
 @itinerary_bp.route("/api/<int:it_id>", methods=["GET"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def get_itinerary(it_id):
     itinerary = query_db("SELECT * FROM Itineraries WHERE ID = ?", [it_id], one=True)
     if not itinerary:
@@ -31,7 +31,7 @@ def get_itinerary(it_id):
 
 @itinerary_bp.route("/api/<int:it_id>", methods=["PUT"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def update_itinerary(it_id):
     payload = request.form
     itinerary = query_db("SELECT * FROM Itineraries WHERE ID = ?", [it_id], one=True)
@@ -42,7 +42,7 @@ def update_itinerary(it_id):
 
 @itinerary_bp.route("/api/<int:it_id>", methods=["DELETE"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def delete_itinerary(it_id):
     itinerary = query_db("SELECT * FROM Itineraries WHERE ID = ?", [it_id], one=True)
     if not itinerary:
@@ -52,14 +52,14 @@ def delete_itinerary(it_id):
 
 @itinerary_bp.route("/api/<int:it_id>/items", methods=["GET"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def get_items(it_id):
     items = query_db("SELECT * FROM ItineraryItems WHERE ItineraryID = ?", [it_id])
     return jsonify(items), 200
 
 @itinerary_bp.route("/api/<int:it_id>/items", methods=["POST"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def add_item(it_id):
     payload = request.form
     itinerary = query_db("SELECT * FROM Itineraries WHERE ID = ?", [it_id], one=True)
@@ -78,7 +78,7 @@ def add_item(it_id):
 
 @itinerary_bp.route("/api/<int:it_id>/items", methods=["PUT"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def update_item(it_id, item_id):
     payload = request.form
     itinerary = query_db("SELECT * FROM Itineraries WHERE ID = ?", [it_id], one=True)
@@ -96,7 +96,7 @@ def update_item(it_id, item_id):
 
 @itinerary_bp.route("/api/<int:it_id>/items/<int:item_id>", methods=["DELETE"])
 @jwt_required()
-@require_ownership_or_admin()
+@require_ownership_or_admin
 def delete_item(it_id, item_id): #it_id is used to check ownership, item_id is used to delete the item
     execute_db("DELETE FROM ItineraryItems WHERE ID = ?", [item_id])
     return jsonify({"msg": "Item deleted from itinerary"}), 200

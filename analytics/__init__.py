@@ -8,14 +8,14 @@ analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 
 @analytics_bp.route("/api/list-users", methods=["GET"])
 @jwt_required()
-@admin_required()
+@admin_required
 def admin_list_users():
     users = query_db("SELECT ID, Email, Role FROM Users")
     return jsonify(users), 200
 
 @analytics_bp.route("/api/bookings/daily", methods=["GET"])
 @jwt_required()
-@admin_required()
+@admin_required
 def bookings_daily():
     end = datetime.now()
     start = end - timedelta(days=30)
@@ -36,7 +36,7 @@ def bookings_daily():
 
 @analytics_bp.route("/api/places/top", methods=["GET"])
 @jwt_required()
-@admin_required()
+@admin_required
 def top_places():
     # average rating per place
     subq = (

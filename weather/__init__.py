@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from maps import nominatim_reverse
 
 weather_bp = Blueprint('weather', __name__, url_prefix='/weather')
 import requests
@@ -6,11 +7,11 @@ import requests
 @weather_bp.route("/current", methods=["GET"])
 def get_current_weather():
     lat = request.args.get("lat")
-    lon = request.args.get("lon")
+    lng = request.args.get("lng")
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": lat,
-        "longitude": lon,
+        "longitude": lng,
         "current_weather": "true",
         "timezone": "auto"
     }
@@ -18,7 +19,6 @@ def get_current_weather():
     resp.raise_for_status()
     resp = resp.json()
     resp["current_weather"]["weathercode"] = map_weather_code(resp["current_weather"]["weathercode"])
-    resp["current_weather"]["location"] = nominatim_reverse(lat, lon)
     return resp["current_weather"]
 
 def map_weather_code(code):
@@ -49,11 +49,3 @@ def map_weather_code(code):
         86: "Mưa tuyết dày",
     }
     return mapping.get(code, f"Unknown code {code}")
-
-def nominatim_reverse(lat, lng):
-    url = "https://nominatim.openstreetmap.org/reverse"
-    params = {"lat": lat, "lon": lng, "format": "jsonv2"}
-    resp = requests.get(url, params=params, timeout=5, headers={"User-Agent": "SmartTravel/1.0"})
-    resp.raise_for_status()
-    print(f"Nominatim reverse geocode response: {resp.text}")
-    return resp.json().get("display_name", "Unknown location")

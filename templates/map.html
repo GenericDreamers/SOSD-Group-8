@@ -24,18 +24,18 @@
     </header>
     <div>
         <div id="map">
+            <div id="search-container">
             <input type="text" placeholder="Search address..." id="input">
             <ul id="suggestionsList"></ul>
+            </div>
             <div id="weather-panel"></div>
         </div>
-        
         <div id="location-info"></div>
         <div id="itinerary-info"></div>
-        <div id="filter-panel"></div>
     </div>
 
 <div>
-    <p>Cần làm: cho người dùng/ admin tạo marker trên bản đồ (cho vào database) | Cho filter by category | có thể nên cache weather data (và cho thêm thông tin về thời tiết trong tương lai) | Implement logic hành trình | Đưa CSS ra file riêng</p>
+    <p>Cần làm: cho người dùng/ admin tạo marker trên bản đồ (cho vào database, add a Confirmed column to Places, still show unconfirmed markers but clearly state that it's not confirmed, Admins can confirm a location in their dashboard) | Cho filter by category (layers: Hotel, Rrstaurant, Everything else labeled as Attractions) | stop propregation | có thể nên cache weather data (và cho thêm thông tin về thời tiết trong tương lai) | Implement logic hành trình | Improve CSS </p>
     <div>Location Info Tab
         <p>Details about the selected location will appear here. Currently placeholder text. Should be shown on a floating panel a la Google Maps</p>
     </div>
@@ -58,40 +58,78 @@
 let timeout;
 let selectedIndex = -1;
 
+var baseIcon = L.Icon.extend({
+    options: {
+        iconSize: [32, 48],
+        iconAnchor: [0, 0],
+        popupAnchor: [16, 0]
+    }
+});
+
+var restaurantIcon = new baseIcon({iconUrl: '../static/restaurant-icon.png'}),
+    hotelIcon = new baseIcon({iconUrl: '../static/hotel-icon.png'}),
+    attractionIcon = new baseIcon({iconUrl: '../static/attraction-icon.png'});
+
+const hotelGroup      = L.layerGroup();
+const restaurantGroup = L.layerGroup();   
+const attractionGroup = L.layerGroup();
+
+const overlayMaps = {
+    "Hotels"      : hotelGroup,
+    "Restaurants" : restaurantGroup,
+    "Attractions" : attractionGroup
+};
+
+L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
+
 function setPlaceMarkers(){
-    fetch('/api/places')
+    fetch('./api/places')
         .then(r => r.json())
         .then(places => {
             console.log('Fetched places:', places);
             places.forEach(place => {
-                var placeMarker = L.marker([place.lat, place.lng]).addTo(map);
-                placeMarker.bindPopup(`<b>${place.name}</b><br>Category: ${place.category}<br>Price: ${place.price}<br>Rating: ${place.rating}<br>Opening Hours: ${place.opening_hours}`);
-                placeMarker.on('click', () => {
-                    updateWeather(placeMarker.getLatLng());
-                });
+                let icon, group;
+                if (place.category === 'Hotel' || place.category === 'Khách sạn') {
+                    icon = hotelIcon;
+                    group = hotelGroup;
+                } else if (place.category === 'Restaurant' || place.category === 'Nhà hàng') {
+                    icon = restaurantIcon;
+                    group = restaurantGroup;
+                } else {
+                    icon = attractionIcon;
+                    group = attractionGroup;
+                }
+                const placeMarker = L.marker([place.lat, place.lng], { icon })
+                                    .bindPopup(`<b>${place.name}</b><br>Category: ${place.category}<br>Price: ${place.price}<br>Rating: ${place.rating}<br>Opening Hours: ${place.opening_hours}`)
+                                    .on('click', () => {updateWeather(placeMarker.getLatLng())});
+                group.addLayer(placeMarker);
             });
         });
 }
+hotelGroup.addTo(map);
+restaurantGroup.addTo(map);
+attractionGroup.addTo(map);
 
-function goToResult(result) {
+console.log(hotelGroup)
+
+function goToMarker(result) {
     const lat = parseFloat(result.lat);
-    const lon = parseFloat(result.lon);
-    console.log(`Navigating to: ${result.display_name} (${lat}, ${lon})`);
-    map.setView([lat, lon], 14);
-    marker.setLatLng([lat, lon]).addTo(map);
+    const lng = parseFloat(result.lng);
+    console.log(`Navigating to: ${result.name} (${lat}, ${lng})`);
+    map.setView([lat, lng], 14);
+    marker.setLatLng([lat, lng]).addTo(map);
     suggestionsList.innerHTML = '';
-    input.value = result.display_name;
+    input.value = result.name;
 }
 
 function updateWeather(location){
-    fetch(`./weather/current?lat=${location.lat}&lon=${location.lng}`)
+    fetch(`/weather/current?lat=${location.lat}&lng=${location.lng}`)
         .then(r => r.json())
         .then(data => {
-            console.log('Current weather at map center:', data);
+            console.log('Current weather at location:', data);
             let weatherPanel = document.getElementById('weather-panel');
             weatherPanel.innerHTML = `
                 <h3 style="margin-top: 0;">Thông tin thời tiết</h3>
-                <p>${data.location}</p>
                 <p style="margin: 4px 0;"><strong>Nhiệt độ:</strong> ${data.temperature}°C</p>
                 <p style="margin: 4px 0;"><strong>Tình trạng:</strong> ${data.weathercode}</p>
                 <p style="margin: 4px 0;"><strong>Gió:</strong> ${data.windspeed} m/s</p>
@@ -99,30 +137,32 @@ function updateWeather(location){
         });
 }
 
-input.addEventListener('input', () => {
+input.addEventListener('input', (e) => {
+    e.stopPropagation();
     clearTimeout(timeout);
     const q = input.value.trim();
     suggestionsList.innerHTML = '';
     selectedIndex = -1;
     if (!q) return;
     timeout = setTimeout(() => {
-        fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}`)
+        fetch(`./api/autocomplete?q=${q}`)
             .then(r => r.json())
             .then(results => {
                 const center = map.getCenter();
                 results.sort((a, b) => {
-                    const distA = Math.pow(a.lat - center.lat, 2) + Math.pow(a.lon - center.lng, 2);
-                    const distB = Math.pow(b.lat - center.lat, 2) + Math.pow(b.lon - center.lng, 2);
+                    const distA = Math.pow(a.lat - center.lat, 2) + Math.pow(a.lng - center.lng, 2);
+                    const distB = Math.pow(b.lat - center.lat, 2) + Math.pow(b.lng - center.lng, 2);
                     return distA - distB;
                 });
                 suggestionsList.innerHTML = '';
+                console.log("Data received: " + results)
                 results.slice(0, 5).forEach((result, idx) => {
                     const li = document.createElement('li');
-                    li.textContent = result.display_name;
+                    li.textContent = result.name;
                     li.style.cssText = `padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;`;
                     li.addEventListener('mouseover', () => { li.style.background = '#f0f0f0'; });
                     li.addEventListener('mouseout', () => { li.style.background = 'white'; });
-                    li.addEventListener('click', () => goToResult(result));
+                    li.addEventListener('click', () => goToMarker(result));
                     suggestionsList.appendChild(li);
                 });
             });
@@ -130,6 +170,7 @@ input.addEventListener('input', () => {
 });
 
 input.addEventListener('keydown', (e) => {
+    e.stopPropagation()
     const items = suggestionsList.querySelectorAll('li');
     if (e.key === 'ArrowDown') {
         selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
@@ -142,9 +183,22 @@ input.addEventListener('keydown', (e) => {
     } else if (e.key === 'Enter' && selectedIndex >= 0 && items[selectedIndex]) {
         e.preventDefault();
         const result = JSON.parse(items[selectedIndex].dataset.result || '{}');
-        goToResult(result);
+        goToMarker(result);
     }
 });
+
+document.addEventListener('click', e => {
+    // if the click is NOT on the input or the suggestion list, clear it
+    if (!input.contains(e.target) && !suggestionsList.contains(e.target)) {
+        suggestionsList.innerHTML = '';
+        selectedIndex = -1;
+    }
+});
+
+map.on('contextmenu', function(e) {
+    const { lat, lng } = e.latlng;
+    marker.setLatLng([lat, lng]).addTo(map);
+})
 
 // map.addEventListener('moveend', () => {
 //     var location;

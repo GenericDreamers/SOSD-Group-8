@@ -25,17 +25,56 @@
     <div>
         <div id="map">
             <div id="search-container">
-            <input type="text" placeholder="Search address..." id="input">
-            <ul id="suggestionsList"></ul>
+                <input type="text" placeholder="Search address..." id="input">
+                <ul id="suggestionsList"></ul>
             </div>
-            <div id="weather-panel"></div>
+            <div id="location-info" class="info-panel hidden">
+                <div class="info-header">
+                    <h2 id="place-name"></h2>
+                    <button id="close-info" aria-label="Close panel">✕</button>
+                </div>
+
+                <!-- basic place data -->
+                <section class="info-section">
+                    <h2>Details</h2>
+                    <ul class="details-list">
+                        <li><strong>Category:</strong> <span id="place-category"></span></li>
+                        <li><strong>Price:</strong> $<span id="place-price"></span></li>
+                        <li><strong>Rating:</strong> <span id="place-rating"></span> ★</li>
+                        <li><strong>Opening hours:</strong> <span id="place-hours"></span></li>
+                        <li id="confirm-status"><strong>Status:</strong> <span></span></li>
+                    </ul>
+                </section>
+
+                <!-- weather (current + 3‑hour forecast) -->
+                <section class="info-section" id="weather-section">
+                    <h2>Weather</h2>
+                    <h3>Current Weather</h3>
+                    <div id="weather-current"></div>
+                    <h3>5-day Forecast</h3>
+                    <div id="weather-forecast" class="forecast-grid"></div>
+                </section>
+
+                <!-- recent reviews -->
+                <section class="info-section" id="reviews-section">
+                <h2>Recent reviews</h2>
+                <ul id="reviews-list" class="reviews-list"></ul>
+
+                <div class="review-nav">
+                    <button id="prev-rev" class="nav-btn" disabled>← Prev</button>
+                    <span id="rev-info"></span>
+                    <button id="next-rev" class="nav-btn">Next →</button>
+                </div>
+
+                <button id="add-review" class="btn-primary">Add review</button>
+            </section>
+            </div>
         </div>
-        <div id="location-info"></div>
         <div id="itinerary-info"></div>
     </div>
 
 <div>
-    <p>Cần làm: cho người dùng/ admin tạo marker trên bản đồ (cho vào database, add a Confirmed column to Places, still show unconfirmed markers but clearly state that it's not confirmed, Admins can confirm a location in their dashboard) | Cho filter by category (layers: Hotel, Rrstaurant, Everything else labeled as Attractions) | stop propregation | có thể nên cache weather data (và cho thêm thông tin về thời tiết trong tương lai) | Implement logic hành trình | Improve CSS </p>
+    <p>Cần làm: cho người dùng/ admin tạo marker trên bản đồ (cho vào database, Admins can confirm a location in their dashboard) | stop propregation | có thể nên cache weather data (và cho thêm thông tin về thời tiết trong tương lai) | Implement logic hành trình | Improve CSS </p>
     <div>Location Info Tab
         <p>Details about the selected location will appear here. Currently placeholder text. Should be shown on a floating panel a la Google Maps</p>
     </div>
@@ -48,12 +87,13 @@
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
 <script>
-  var map = L.map('map').setView([21.028511, 105.804817], 12); // default location (Hanoi)
+  var map = L.map('map', {zoomControl: false}).setView([21.028511, 105.804817], 12); // default location (Hanoi)
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
     var marker = L.marker([21.028511, 105.804817]).addTo(map).remove(); // create marker but don't add to map yet
   setPlaceMarkers();
+  L.control.zoom({position: 'bottomright'}).addTo(map);
 
 let timeout;
 let selectedIndex = -1;
@@ -82,6 +122,10 @@ const overlayMaps = {
 
 L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
 
+function fetchJSON(url) {
+    return fetch(url).then(r => r.json());
+}
+
 function setPlaceMarkers(){
     fetch('./api/places')
         .then(r => r.json())
@@ -100,17 +144,18 @@ function setPlaceMarkers(){
                     group = attractionGroup;
                 }
                 const placeMarker = L.marker([place.lat, place.lng], { icon })
-                                    .bindPopup(`<b>${place.name}</b><br>Category: ${place.category}<br>Price: ${place.price}<br>Rating: ${place.rating}<br>Opening Hours: ${place.opening_hours}`)
-                                    .on('click', () => {updateWeather(placeMarker.getLatLng())});
+                                    .bindPopup(`<p hidden>${place.id}</p><b>${place.name}</b><br>Category: ${place.category}<br>Price: ${place.price}<br>Rating: placeholder<br>Opening Hours: ${place.opening_hours}`)
+                                    .on('click', () => {
+                                        showPlaceInfo(place.id, place.Latitude, place.Longitude);
+                                    });
                 group.addLayer(placeMarker);
             });
-        });
+    });
 }
+
 hotelGroup.addTo(map);
 restaurantGroup.addTo(map);
 attractionGroup.addTo(map);
-
-console.log(hotelGroup)
 
 function goToMarker(result) {
     const lat = parseFloat(result.lat);
@@ -122,23 +167,114 @@ function goToMarker(result) {
     input.value = result.name;
 }
 
-function updateWeather(location){
-    fetch(`/weather/current?lat=${location.lat}&lng=${location.lng}`)
-        .then(r => r.json())
-        .then(data => {
-            console.log('Current weather at location:', data);
-            let weatherPanel = document.getElementById('weather-panel');
-            weatherPanel.innerHTML = `
-                <h3 style="margin-top: 0;">Thông tin thời tiết</h3>
-                <p style="margin: 4px 0;"><strong>Nhiệt độ:</strong> ${data.temperature}°C</p>
-                <p style="margin: 4px 0;"><strong>Tình trạng:</strong> ${data.weathercode}</p>
-                <p style="margin: 4px 0;"><strong>Gió:</strong> ${data.windspeed} m/s</p>
-            `;
-        });
+let currentPage = 1;
+const perPage = 5;   // number of reviews shown per page
+let totalReviews = 0;
+let currentPlaceId = null;
+
+/* Load reviews for a given place */
+async function loadReviews(placeId, page = 1) {
+    currentPlaceId = placeId;
+    currentPage = page;
+
+    const resp = await fetch(`/review/api/list/${placeId}?page=${page}&per_page=${perPage}`);
+    const data = await resp.json();
+
+    totalReviews = data.total;
+    renderReviews(data.items);
+    updateNav();
 }
 
+function renderReviews(reviews) {
+    const list = document.getElementById('reviews-list');
+    if (reviews.length === 0) {
+        list.innerHTML = '<li>No reviews yet.</li>';
+        return;
+    }
+    list.innerHTML = reviews.map(r => `
+        <li>
+            <strong>${r.Stars}★</strong> - ${r.Content}
+            <br><small>by User ${r.UserID} on ${new Date(r.CreatedAt).toLocaleDateString()}</small>
+        </li>
+    `).join('');
+}
+
+function updateNav() {
+    const prevBtn = document.getElementById('prev-rev');
+    const nextBtn = document.getElementById('next-rev');
+    const info   = document.getElementById('rev-info');
+
+    const start = (currentPage - 1) * perPage + 1;
+    const end   = Math.min(currentPage * perPage, totalReviews);
+
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = end >= totalReviews;
+
+    info.textContent = `${start}-${end} of ${totalReviews}`;
+}
+
+document.getElementById('prev-rev').addEventListener('click', () => {
+    if (currentPage > 1) loadReviews(currentPlaceId, currentPage - 1);
+});
+document.getElementById('next-rev').addEventListener('click', () => {
+    if ((currentPage * perPage) < totalReviews) loadReviews(currentPlaceId, currentPage + 1);
+});
+
+async function showPlaceInfo(placeId, lat, lng) {
+    fetchJSON(`./api/places/${placeId}`)
+        .then(places => {
+            const place = places[0];
+            console.log("place info: " + JSON.stringify(place))
+            document.getElementById('place-name').innerHTML = place.name;
+            document.getElementById('place-category').innerHTML = place.category;
+            document.getElementById('place-price').innerHTML = place.price ?? '—';
+            document.getElementById('place-rating').innerHTML = place.rating ?? '—';
+            document.getElementById('place-hours').innerHTML = place.opening_hours ?? '—';
+
+            const statusIndicator = document.querySelector('#confirm-status span');
+            if (place.confirmed === "1") {
+                statusIndicator.innerHTML = 'Confirmed';
+                statusIndicator.style.color = 'green';
+            } else {
+                statusIndicator.innerHTML = 'Not confirmed (admin review pending)';
+                statusIndicator.style.color = 'orange';
+            }
+
+            fetchJSON(`/weather/current?lat=${place.lat}&lng=${place.lng}`)
+            .then(weather => {
+                document.getElementById('weather-current').innerHTML = `
+                    <p><strong>Temp:</strong> ${weather.current.temperature}°C</p>
+                    <p><strong>Condition:</strong> ${weather.current.weathercode}</p>
+                    <p><strong>Wind:</strong> ${weather.current.windspeed} m/s</p>
+                `;
+                
+                const forecastHTML = weather.forecast_5day.time.map((date, index) => `
+                    <div class="forecast-item">
+                        <p><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</p>
+                        <p><strong>Temperature:</strong> ${weather.forecast_5day.temperature_2m_min[index]}-${weather.forecast_5day.temperature_2m_max[index]}°C</p>
+                        <p><strong>Weather:</strong> ${weather.forecast_5day.weather_code[index]}</p>
+                        <p><strong>Precipitation:</strong> ${weather.forecast_5day.precipitation_sum[index]} mm</p>
+                    </div>
+                `).join('');
+
+                
+                document.getElementById('weather-forecast').innerHTML = forecastHTML;
+            });
+            
+
+            loadReviews(placeId, 1);
+
+            // Show panel
+            document.getElementById('location-info').classList.remove('hidden');
+            })
+};
+
+// Close button
+document.getElementById('close-info').addEventListener('click', () => {
+    document.getElementById('location-info').classList.add('hidden');
+});
+
 input.addEventListener('input', (e) => {
-    e.stopPropagation();
     clearTimeout(timeout);
     const q = input.value.trim();
     suggestionsList.innerHTML = '';
@@ -170,7 +306,6 @@ input.addEventListener('input', (e) => {
 });
 
 input.addEventListener('keydown', (e) => {
-    e.stopPropagation()
     const items = suggestionsList.querySelectorAll('li');
     if (e.key === 'ArrowDown') {
         selectedIndex = Math.min(selectedIndex + 1, items.length - 1);

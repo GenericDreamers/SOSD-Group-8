@@ -1,5 +1,6 @@
-from flask import Blueprint, logging, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify
 from flask_jwt_extended import jwt_required
+from review import get_average
 from db import query_db
 import requests
 import urllib.parse
@@ -19,10 +20,18 @@ def nominatim_reverse():
     return resp.json().get("display_name", "Unknown location")
 
 @maps_bp.route("/api/places", methods=["GET"])
-def get_places():
-    places = query_db("SELECT * FROM Places")
-    places = [{"lat": p["Latitude"], "lng": p["Longitude"], "name": p["Name"], "category": p["Category"], "price": p["Price"], "rating": p["Rating"], "opening_hours": p["Opening_hours"]} for p in places]
-    return places
+@maps_bp.route("/api/places/<int:placeID>", methods=["GET"])
+def get_places(placeID = None):
+    if placeID:
+        places = query_db("SELECT * FROM Places WHERE ID = ?",[placeID])
+    else:
+        places = query_db("SELECT * FROM Places")
+    if not places:
+        return jsonify({"msg": "get_places API returned no places"}), 404
+
+    places = [{"id": str(p["ID"]), "lat": str(p["Latitude"]), "lng": str(p["Longitude"]), "name": p["Name"], "category": p["Category"], "price": str(p["Price"]), "opening_hours": p["Opening_hours"], "rating": str(get_average(p["ID"])), "confirmed": str(p["Confirmed"])} for p in places]
+
+    return jsonify(places)
 
 @maps_bp.route("/api/autocomplete")
 def autocomplete():

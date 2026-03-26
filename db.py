@@ -19,7 +19,7 @@ def query_db(query, args=(), one=False):
     return (rv[0] if rv else None) if one else rv
 
 def execute_db(query, args=()):
-    conn = get_db().execute(query, args)
-    conn.commit()
-    conn.close()
+    db = get_db()
+    db.execute(query, args)
+    db.commit()
     return

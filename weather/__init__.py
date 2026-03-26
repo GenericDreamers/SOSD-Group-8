@@ -1,5 +1,4 @@
-from flask import Blueprint, jsonify, request
-from maps import nominatim_reverse
+from flask import Blueprint, request
 
 weather_bp = Blueprint('weather', __name__, url_prefix='/weather')
 import requests
@@ -13,13 +12,28 @@ def get_current_weather():
         "latitude": lat,
         "longitude": lng,
         "current_weather": "true",
+        "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum",
+        "forecast_days": 5,
         "timezone": "auto"
     }
     resp = requests.get(url, params=params, timeout=5)
     resp.raise_for_status()
     resp = resp.json()
+    print("Received weather info: ")
+    print(resp)
+    
+    # Map current weather code
     resp["current_weather"]["weathercode"] = map_weather_code(resp["current_weather"]["weathercode"])
-    return resp["current_weather"]
+    
+    # Map weather codes in daily forecast
+    if "daily" in resp:
+        for i, code in enumerate(resp["daily"]["weather_code"]):
+            resp["daily"]["weather_code"][i] = map_weather_code(code)
+    
+    return {
+        "current": resp["current_weather"],
+        "forecast_5day": resp.get("daily", {})
+    }
 
 def map_weather_code(code):
     mapping = {

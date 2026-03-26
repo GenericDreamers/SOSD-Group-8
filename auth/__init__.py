@@ -15,7 +15,13 @@ def register():
     if query_db("SELECT * FROM Users WHERE Email = ?", [data["email"]], one=True):
         return jsonify({"msg": "Email already registered"}), 409
     
+    if (data["password"] != data["confirm-password"]):
+        return jsonify({"msg": "Password fields don't match"}), 403
+    
     execute_db("INSERT INTO Users (Email, Password, Role) VALUES (?, ?, ?)", [data["email"], generate_password_hash(data["password"]), "User"])
+    userId = query_db("Select ID FROM Users WHERE Email = ?", [data["email"]], True)["ID"]
+    execute_db("INSERT INTO UserProfiles VALUES (?, ?, ?, ?)", [userId, data["username"], data["birthday"], data["gender"]])
+
     return jsonify({"msg": "User created"}), 201
 
 @auth_bp.route("/api/login", methods=["POST"])
@@ -42,12 +48,6 @@ def refresh():
 def me():
     user = get_jwt_identity()
     return jsonify(user), 200
-
-@auth_bp.route("/api/logout", methods=["POST"])
-@jwt_required()
-def logout():
-    # In a real implementation, you would add the token to a blacklist here
-    return jsonify({"msg": "Logged out"}), 200
 
 @auth_bp.route("/api/change-password", methods=["POST"])
 @jwt_required()
@@ -118,7 +118,7 @@ def login_page():
     if request.method == "POST":
         api_response = login()
         if api_response[1] == 200:
-            return render_template("dashboard.html")
+            return render_template("map.html") #placeholder, probably should redirect user to a dashboard or something
         else:
             return render_template("login.html", msg=api_response[0].json["msg"])
     return render_template("login.html")

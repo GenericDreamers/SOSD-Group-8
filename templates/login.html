@@ -7,7 +7,7 @@
 </head>
 <body>
     <h1>Login</h1>
-    <form action="/auth/login" method="POST">
+    <form id="login-form">
         <label for="email">Email:</label><br>
         <input type="email" id="email" name="email" required><br>
         <label for="password">Password:</label><br>
@@ -18,4 +18,34 @@
         <p>{{ msg }}</p>
     {% endif %}
 </body>
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch('./api/login', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.access_token) {
+            // Store tokens in localStorage
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('refresh_token', data.refresh_token);
+            
+            // Redirect to map
+            window.location.href = '/map';
+        } else {
+            alert(data.msg || 'Login failed');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('Login error');
+    }
+});
+</script>
 </html>

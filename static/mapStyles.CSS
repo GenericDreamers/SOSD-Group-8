@@ -2,26 +2,23 @@
     height: 80vh;
     width: 100%;
 }
+#search-container {
+    pointer-events: auto;
+}
 #location-info {
+    pointer-events: auto;
     position: absolute;
     top: 0px;
-    right: 0px;
+    left: 0px;
     background-color: white;
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-#weather-panel {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    width: 250px;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 10px;
-    z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 320px;
+    height: calc(100% - 20px);
+    overflow-y: auto;
+    transition: transform .3s ease;
+    z-index: 500;
 }
 #filter-panel {
     position: absolute;
@@ -63,19 +60,7 @@
     overflow-y: auto;
 }
 
-.info-panel {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 320px;
-    height: 100%;
-    background: #fff;
-    box-shadow: -2px 0 6px rgba(0,0,0,.1);
-    overflow-y: auto;
-    transition: transform .3s ease;
-    z-index: 500;
-}
-.info-panel.hidden { transform: translateX(-100%); }
+#location-info.hidden { transform: translateX(-100%); }
 .info-header { display: flex; justify-content: space-between; align-items: center; }
 .info-header h2 { margin: 0; font-size: 1.2rem; }
 #close-info { background: none; border: none; font-size: 1.4rem; cursor: pointer; }
@@ -105,4 +90,175 @@
 .nav-btn:disabled {
     opacity: .5;
     cursor: not-allowed;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Itinerary Sidebar */
+.itinerary-sidebar {
+  position: absolute;
+  right: 10px;
+  top: 100px;
+  width: 300px;
+  max-height: calc(80vh - 100px);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 750;
+  display: flex;
+  flex-direction: column;
+}
+
+.itinerary-sidebar.hidden {
+  display: none;
+}
+
+.itinerary-header {
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itinerary-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.itinerary-controls {
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.itinerary-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  min-height: 0; 
+}
+
+.itinerary-item {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.itinerary-item:hover {
+  background: #f9f9f9;
+}
+
+.itinerary-item.drag-over {
+  background: #e3f2fd;
+  border-left: 3px solid #2196F3;
+}
+
+.item-number {
+  width: 28px;
+  height: 28px;
+  background: #FF6B6B;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-content h4 {
+  margin: 0;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-coords {
+  margin: 3px 0 0 0;
+  font-size: 11px;
+  color: #999;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove:hover {
+  color: #FF6B6B;
+}
+
+.itinerary-footer {
+  padding: 10px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 8px;
+}
+
+.itinerary-footer button {
+  flex: 1;
+}
+.map-control-btn {
+    position: absolute;
+    top: 100px;
+    right: 15px;
+    z-index: 600;
+    padding: 10px 15px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.map-control-btn:hover {
+    background: #f5f5f5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }

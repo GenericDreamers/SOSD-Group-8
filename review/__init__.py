@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -12,24 +12,33 @@ def add():
     payload = request.get_json()
     user = get_jwt_identity()
     review = {
-        "user_id": user["id"],
+        "user_id": user,
         "placeID": payload["placeID"],
-        "rating": payload["rating"],
+        "stars": payload["stars"],
         "comment": payload.get("comment", ""),
     }
-    execute_db("INSERT INTO Reviews (UserID, PlaceID, Stars, Content, CreatedAt) VALUES (?, ?, ?, ?, ?)", [review["user_id"], review["placeID"], review["rating"], review["comment"], datetime.now()])
+    execute_db("INSERT INTO Reviews (UserID, PlaceID, Stars, Content, CreatedAt) VALUES (?, ?, ?, ?, ?)", [review["user_id"], review["placeID"], review["stars"], review["comment"], datetime.now()])
     return jsonify({"msg": "Review added"}), 201
 
 @review_bp.route("/api/list/<int:placeID>", methods=["GET"])
 def list_reviews(placeID):
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 20))
-    total = query_db("SELECT ID FROM Reviews WHERE PlaceID = ?", [placeID])
-    count = 0
-    for x in total:
-        count += 1
+    total_rows = query_db("SELECT COUNT(*) as count FROM Reviews WHERE PlaceID = ?", [placeID], one=True)
+    count = total_rows["count"]
+
+    reviews = query_db(
+        """SELECT Reviews.*, UserProfiles.Username 
+           FROM Reviews 
+           LEFT JOIN UserProfiles ON Reviews.UserID = UserProfiles.UserID 
+           WHERE Reviews.PlaceID = ? 
+           LIMIT ? OFFSET ?""", 
+        [placeID, per_page, (page - 1) * per_page]
+    )
+
+    reviews_list = [dict(row) for row in reviews]
     return jsonify(
-        items=query_db("SELECT * FROM Reviews WHERE PlaceID = ? LIMIT ? OFFSET ?", [placeID, per_page, (page - 1) * per_page]),
+        items=reviews_list,
         total=count,
         page=page,
         per_page=per_page,

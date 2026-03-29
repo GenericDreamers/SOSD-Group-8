@@ -1,7 +1,7 @@
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request, redirect, url_for
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt
 from db import query_db, execute_db
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -32,15 +32,16 @@ def login():
     user = query_db("SELECT * FROM Users WHERE Email = ?", [data["email"]], one=True)
     if not user or not check_password_hash(user['Password'], data["password"]):
         return jsonify({"msg": "Invalid credentials"}), 401
-    access = create_access_token(identity={"id": user["ID"], "role": user["Role"]})
-    refresh = create_refresh_token(identity={"id": user["ID"], "role": user["Role"]})
+    access = create_access_token(identity=str(user["ID"]), additional_claims={"role": user["Role"]})
+    refresh = create_refresh_token(identity=str(user["ID"]), additional_claims={"role": user["Role"]})
     return jsonify(access_token=access, refresh_token=refresh), 200
 
 @auth_bp.route("/api/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh():
     identity = get_jwt_identity()
-    new_access = create_access_token(identity=identity)
+    user_role = get_jwt().get("role", "User")
+    new_access = create_access_token(identity=identity, additional_claims={"role": user_role})
     return jsonify(access_token=new_access), 200
 
 @auth_bp.route("/api/me", methods=["GET"])
@@ -117,8 +118,11 @@ def register_page():
 def login_page():
     if request.method == "POST":
         api_response = login()
+        print("access token:")
+        print(api_response[0].json)
+        
         if api_response[1] == 200:
-            return render_template("map.html") #placeholder, probably should redirect user to a dashboard or something
+            return redirect(url_for('maps.map_view'))
         else:
             return render_template("login.html", msg=api_response[0].json["msg"])
     return render_template("login.html")

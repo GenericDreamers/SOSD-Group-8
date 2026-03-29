@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <h1>Register</h1>
+    <form action="/auth/register" method="POST">
+        <fieldset>
+            <legend><b>Account Login Information</b></legend>
+            <label for="email">Email:</label><br>
+            <input type="email" id="email" name="email" required><br>
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password" required><br>
+            <label for="confirm-password">Confirm Password:</label><br>
+            <input type="password" id="confirm-password" name="confirm-password" required><br>
+        </fieldset>
+
+        <fieldset>
+            <legend><b>Profile Information</b></legend>
+            <label for="username">Username:</label><br>
+            <input type="text" id="username" name="username" required><br>
+            <label for="birthday">Birthday:</label><br>
+            <input type="date" id="birthday" name="birthday" required><br>
+            <label for="gender">Gender:</label><br>
+            <select name="gender" id="gender" required>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+            </select>
+        </fieldset>
+        <br>
+        <input type="submit" value="Register">
+    </form>
+    {% if msg %}
+        <p>{{ msg }}</p>
+    {% endif %}
+</body>
+</html>

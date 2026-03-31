@@ -14,7 +14,7 @@ from notification import notification_bp
 from analytics import analytics_bp
 
 app = Flask(__name__)
-app.config['JWT_SECRET_KEY'] = 'Group8SmartTravel'
+app.config['JWT_SECRET_KEY'] = 'Group8SmartTravelVeryLongSecretKeyStopGivingWarnings'
 JWT_ACCESS_TOKEN_EXPIRES = 3600  # 1 hour
 JWT_REFRESH_TOKEN_EXPIRES = 86400  # 1 day
 jwt = JWTManager(app)

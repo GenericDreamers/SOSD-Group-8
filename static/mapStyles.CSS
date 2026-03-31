@@ -105,6 +105,10 @@
     z-index: 2000;
 }
 
+.modal-overlay.hidden {
+    display: none;
+}
+
 .modal {
     background: white;
     border-radius: 8px;
@@ -261,4 +265,39 @@
 .map-control-btn:hover {
     background: #f5f5f5;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.btn-load{
+  padding: 6px 12px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.itinerary-card{
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.route-number-marker{
+  width: 40px; height: 40px;
+  background: #FF6B6B;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  border: 2px solid white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }

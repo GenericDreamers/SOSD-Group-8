@@ -186,13 +186,20 @@ input.addEventListener('input', () => {
         fetch(`./api/autocomplete?q=${q}`)
             .then(r => r.json())
             .then(results => {
+                suggestionsList.innerHTML = '';
+                if (!results || results.length === 0) {
+                    const li = document.createElement('li');
+                    li.textContent = 'Không tìm thấy tên địa điểm. Vui lòng thử lại hoặc thêm địa điểm mới bằng cách nhấn chuột phải vào bản đồ.';
+                    li.style.cssText = `padding: 8px; border-bottom: 1px solid #eee;`
+                    suggestionsList.appendChild(li);
+                    return;
+                }
                 const center = map.getCenter();
                 results.sort((a, b) => {
                     const distA = Math.pow(a.lat - center.lat, 2) + Math.pow(a.lng - center.lng, 2);
                     const distB = Math.pow(b.lat - center.lat, 2) + Math.pow(b.lng - center.lng, 2);
                     return distA - distB;
                 });
-                suggestionsList.innerHTML = '';
                 console.log("Data received: " + results)
                 results.slice(0, 5).forEach((result, idx) => {
                     const li = document.createElement('li');

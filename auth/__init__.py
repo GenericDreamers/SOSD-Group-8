@@ -41,7 +41,8 @@ def login():
 def refresh():
     identity = get_jwt_identity()
     user_role = get_jwt().get("role", "User")
-    new_access = create_access_token(identity=identity, additional_claims={"role": user_role})
+    new_access = create_access_token(identity=identity, additional_claims={"role": user_role}, expires_delta=3600)
+    print(f"Refreshed token for user {identity} with role {user_role}")
     return jsonify(access_token=new_access), 200
 
 @auth_bp.route("/api/me", methods=["GET"])
@@ -80,9 +81,8 @@ def require_ownership_or_admin(func):
         if not requester:
             return jsonify({"msg": "Missing JWT"}), 401
 
-        requester_id = requester["id"]
-        if requester_id != user_id:
-            row = query_db("SELECT Role FROM Users WHERE UserID = ?", [requester_id], one=True)
+        if requester != user_id:
+            row = query_db("SELECT Role FROM Users WHERE ID = ?", [requester], one=True)
             if not row or row["Role"] != "Admin":
                 return jsonify({"msg": "Unauthorized"}), 403
         # All checks passed – call the original view
@@ -96,8 +96,7 @@ def admin_required(func):
         requester = get_jwt_identity()
         if not requester:
             return jsonify({"msg": "Missing JWT"}), 401
-        requester_id = requester["id"]
-        row = query_db("SELECT Role FROM Users WHERE ID = ?", [requester_id], one=True)
+        row = query_db("SELECT Role FROM Users WHERE ID = ?", [requester], one=True)
         if not row or row["Role"] != "Admin":
             return jsonify({"msg": "Admin access required"}), 403
         return func(*args, **kwargs)
@@ -116,13 +115,4 @@ def register_page():
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login_page():
-    if request.method == "POST":
-        api_response = login()
-        print("access token:")
-        print(api_response[0].json)
-        
-        if api_response[1] == 200:
-            return redirect(url_for('maps.map_view'))
-        else:
-            return render_template("login.html", msg=api_response[0].json["msg"])
     return render_template("login.html")

@@ -1,5 +1,5 @@
 const itinerary = {
-    locations: [], // Array of {id, name, lat, lng, category, icon}
+    locations: [], // Array of {id, name, lat, lng, category, note}
     polylines: [],
     markers: [],
     
@@ -16,8 +16,7 @@ const itinerary = {
             lat: place.lat,
             lng: place.lng,
             category: place.category,
-            price: place.price,
-            rating: place.rating
+            note: '' // For user notes
         });
         
         return true;
@@ -65,40 +64,17 @@ function drawRoute() {
     
     // Add numbered stop markers
     itinerary.locations.forEach((location, index) => {
-        const circleMarker = L.circleMarker([location.lat, location.lng], {
-            radius: 20,
-            fillColor: '#FF6B6B',
-            color: '#fff',
-            weight: 3,
-            opacity: 1,
-            fillOpacity: 0.85
-        })
-        .bindPopup(`<strong>${index + 1}. ${location.name}</strong><br>${location.category}`)
-        .addTo(map);
         
         // Add number label
         const label = L.marker([location.lat, location.lng], {
             icon: L.divIcon({
                 className: 'route-number-marker',
-                html: `<div style="
-                    width: 40px; height: 40px;
-                    background: #FF6B6B;
-                    color: white;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: bold;
-                    font-size: 16px;
-                    border: 2px solid white;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                ">${index + 1}</div>`,
+                html: `<div>${index + 1}</div>`,
                 iconSize: [40, 40],
                 iconAnchor: [20, 20]
             })
         }).addTo(map);
         
-        itinerary.markers.push(circleMarker);
         itinerary.markers.push(label);
     });
     
@@ -183,7 +159,7 @@ function renderItineraryList() {
             <div class="item-content">
                 <h4>${location.name}</h4>
                 <p class="item-category">${location.category}</p>
-                <p class="item-rating">${location.rating ? location.rating + ' ★' : 'No rating'}</p>
+                <textarea class="item-note" placeholder="Add a note..." data-index="${index}">${location.note || ''}</textarea>
             </div>
             <button class="btn-remove" data-index="${index}" aria-label="Remove">✕</button>
         `;
@@ -228,7 +204,7 @@ function renderItineraryList() {
         // Click to highlight on map
         li.addEventListener('click', (e) => {
             if (!e.target.classList.contains('btn-remove')) {
-                map.setView([location.lat, location.lng], 16);
+                showPlaceInfo(location.id);
             }
         });
         
@@ -238,6 +214,11 @@ function renderItineraryList() {
             itinerary.removeLocation(index);
             renderItineraryList();
             drawRoute();
+        });
+
+        li.querySelector('.item-note').addEventListener('change', (e) => {
+            const idx = e.target.dataset.index;
+            itinerary.locations[idx].note = e.target.value;
         });
         
         list.appendChild(li);
@@ -277,7 +258,7 @@ function toggleItineraryPanel() {
     }
 }
 
-function saveItinerary() {
+async function saveItinerary() {
     if (itinerary.locations.length === 0) {
         alert('Add locations to your itinerary first');
         return;
@@ -286,18 +267,137 @@ function saveItinerary() {
     const name = prompt('Name your itinerary:');
     if (!name) return;
     
-    const saved = JSON.parse(localStorage.getItem('savedItineraries') || '{}');
-    saved[name] = itinerary.locations;
-    localStorage.setItem('savedItineraries', JSON.stringify(saved));
-    alert(`Itinerary "${name}" saved!`);
+    try {
+        const response = await fetch('/itinerary/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+            body: JSON.stringify({
+                title: name,
+                items: itinerary.locations.map((loc, idx) => ({
+                    placeId: loc.id,
+                    sequence: idx,
+                    notes: loc.note || ''
+                }))
+            })
+        });
+        
+        if (response.ok) {
+            alert(`Itinerary "${name}" saved!`);
+            itinerary.locations = [];
+            renderItineraryList();
+        }
+    } catch (error) {
+        console.error('Save failed:', error);
+        alert('Failed to save itinerary');
+    }
 }
 
-function loadSavedItinerary(name) {
-    const saved = JSON.parse(localStorage.getItem('savedItineraries') || '{}');
-    if (saved[name]) {
-        itinerary.locations = saved[name];
+document.getElementById('load-itinerary').addEventListener('click', openLoadModal);
+
+async function openLoadModal() {
+    const overlay = document.getElementById('load-modal-overlay');
+    const container = document.getElementById('itineraries-list');
+    
+    try {
+        const response = await fetch('/itinerary/api/list', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+        const data = await response.json();
+        console.log('Loaded itineraries:', data);
+        
+        if (data.length === 0) {
+            container.innerHTML = '<p class="empty-state" style="text-align: center; color: #999; padding: 20px; margin: 0;">No saved itineraries yet</p>';
+        } else {
+            container.innerHTML = data.map(itinerary => `
+                <div class="itinerary-card" data-id="${itinerary.ID}">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 4px 0; font-size: 14px;">${escapeHtml(itinerary.Title)}</h4>
+                        <p style="margin: 0; font-size: 12px; color: #666;">
+                            ${itinerary.ItemCount} location${itinerary.ItemCount !== 1 ? 's' : ''} • 
+                            ${new Date(itinerary.CreatedAt).toLocaleString()}
+                        </p>
+                    </div>
+                    <button class="btn-load" data-id="${itinerary.ID}">Load</button>
+                </div>
+            `).join('');
+            
+            // Add hover effects
+            container.querySelectorAll('.itinerary-card').forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.background = '#f9f9f9';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.background = 'transparent';
+                });
+            });
+            
+            // Add click handlers to load buttons
+            container.querySelectorAll('.btn-load').forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.background = '#45a049';
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.background = '#4CAF50';
+                });
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const itineraryId = e.target.dataset.id;
+                    loadSavedItinerary(itineraryId);
+                    overlay.classList.add('hidden');
+                });
+            });
+        }
+        
+        overlay.classList.remove('hidden');
+    } catch (error) {
+        console.error('Failed to load itineraries:', error);
+        alert('Failed to load saved itineraries');
+    }
+}
+
+// Close modal handlers
+document.getElementById('cancel-load').addEventListener('click', () => {
+    document.getElementById('load-modal-overlay').classList.add('hidden');
+});
+
+// Close modal when clicking outside
+document.getElementById('load-modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'load-modal-overlay') {
+        document.getElementById('load-modal-overlay').classList.add('hidden');
+    }
+});
+
+// Utility function to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+async function loadSavedItinerary(itineraryId) {
+    try {
+        const response = await fetch(`/itinerary/api/${itineraryId}`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+        });
+        const data = await response.json();
+        
+        itinerary.locations = data.items.map(item => ({
+            id: item.placeId,
+            name: item.placeName,
+            lat: item.lat,
+            lng: item.lng,
+            category: item.category,
+            price: item.price,
+            rating: item.rating,
+            note: item.notes || ''
+        }));
+        
         renderItineraryList();
         drawRoute();
+    } catch (error) {
+        console.error('Load failed:', error);
+        alert('Failed to load itinerary');
     }
 }
 

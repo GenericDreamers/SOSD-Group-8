@@ -88,6 +88,7 @@
                 <div class="itinerary-controls">
                     <button id="optimize-route" class="btn-secondary">Optimize Route</button>
                     <button id="clear-itinerary" class="btn-secondary">Clear All</button>
+                    <button id="load-itinerary" class="btn-secondary">Load Itinerary</button>
                 </div>
                 
                 <ul id="itinerary-list" class="itinerary-list"></ul>
@@ -96,6 +97,21 @@
                     <p id="itinerary-distance"></p>
                     <button id="save-itinerary" class="btn-primary">Save Itinerary</button>
                     <button id="export-itinerary" class="btn-secondary">Export</button>
+                </div>
+            </div>
+
+            <!-- Load Itinerary Modal -->
+            <div id="load-modal-overlay" class="modal-overlay hidden">
+                <div class="modal">
+                    <h3 style="margin-top: 0; margin-bottom: 16px;">Load Itinerary</h3>
+                    
+                    <div id="itineraries-list" class="itineraries-container" style="margin-bottom: 16px; max-height: 400px; overflow-y: auto;">
+
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button id="cancel-load" class="btn-secondary">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>

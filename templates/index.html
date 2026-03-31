@@ -11,13 +11,62 @@
     <ul>
         <li><a href="/auth/register">Register</a></li>
         <li><a href="/auth/login">Login</a></li>
-        <li><a href="/search">Search Places</a></li>
         <li><a href="/map">View Map</a></li>
-        <li><a href="/weather">Check Weather</a></li>
         <li><a href="/booking">Make a Booking</a></li>
         <li><a href="/itinerary">View Itinerary</a></li>
         <li><a href="/notifications">View Notifications</a></li>
-        <li><a href="/analytics">View Analytics</a></li>
+        <li><a href="/profile">View Profile</a></li>
+        <li><a href="/admin">Admin Dashboard</a></li>
+        <li><a href="/auth/api/me" id="api-test-me">API /me Test</a></li>
+        <li><a href="/auth/api/refresh" id="api-test-refresh">API /refresh Test</a></li>
     </ul>
 </body>
+<script>
+    document.getElementById('api-test-me').addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        try {
+            const response = await fetch('/auth/api/me', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('API Test Success: ' + JSON.stringify(data));
+            } else {
+                alert('API Test Failed: ' + data.msg);
+            }
+        } catch (error) {
+            console.error('API Test error:', error);
+            alert('API Test error');
+        }
+    });
+    document.getElementById('api-test-refresh').addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        try {
+            const response = await fetch('/auth/api/refresh', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('refresh_token')
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.access_token) {
+                localStorage.setItem('access_token', data.access_token);
+                alert('Token refreshed successfully');
+            } else {
+                alert('Token refresh failed: ' + data.msg);
+            }
+        } catch (error) {
+            console.error('Token refresh error:', error);
+            alert('Token refresh error');
+        }
+    });
+</script>
 </html>

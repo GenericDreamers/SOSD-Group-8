@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -55,3 +55,48 @@ def get_average(placeID):
         total += r["Stars"]
         count += 1
     return (total/count)
+
+@review_bp.route("/api/user/<int:placeID>", methods=["GET"])
+@jwt_required()
+def get_user_review(placeID):
+    user_id = get_jwt_identity()
+    review = query_db(
+        "SELECT * FROM Reviews WHERE PlaceID = ? AND UserID = ?", 
+        [placeID, user_id], 
+        one=True
+    )
+    
+    if review:
+        return jsonify(dict(review)), 200
+    else:
+        return jsonify({"msg": "No review found"}), 404
+
+@review_bp.route("/api/update/<int:reviewID>", methods=["PUT"])
+@jwt_required()
+def update_review(reviewID):
+    user_id = get_jwt_identity()
+    payload = request.get_json()
+    
+    # Verify ownership
+    review = query_db("SELECT UserID FROM Reviews WHERE ID = ?", [reviewID], one=True)
+    if not review or review["UserID"] != int(user_id):
+        return jsonify({"msg": "Unauthorized"}), 403
+    
+    execute_db(
+        "UPDATE Reviews SET Stars = ?, Content = ? WHERE ID = ?",
+        [payload["stars"], payload["comment"], reviewID]
+    )
+    return jsonify({"msg": "Review updated"}), 200
+
+@review_bp.route("/api/delete/<int:reviewID>", methods=["DELETE"])
+@jwt_required()
+def delete_review(reviewID):
+    user_id = get_jwt_identity()
+    
+    # Verify ownership
+    review = query_db("SELECT UserID FROM Reviews WHERE ID = ?", [reviewID], one=True)
+    if not review or review["UserID"] != int(user_id):
+        return jsonify({"msg": "Unauthorized"}), 403
+    
+    execute_db("DELETE FROM Reviews WHERE ID = ?", [reviewID])
+    return jsonify({"msg": "Review deleted"}), 200

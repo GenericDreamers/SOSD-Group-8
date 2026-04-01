@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, render_template
 from flask_jwt_extended import JWTManager
 
@@ -15,8 +16,8 @@ from analytics import analytics_bp
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'Group8SmartTravelVeryLongSecretKeyStopGivingWarnings'
-JWT_ACCESS_TOKEN_EXPIRES = 3600  # 1 hour
-JWT_REFRESH_TOKEN_EXPIRES = 86400  # 1 day
+JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(hours=1)
+JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=1)
 jwt = JWTManager(app)
 app.secret_key = "Group8SmartTravel"   
 app.template_folder = "templates"

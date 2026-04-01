@@ -41,7 +41,7 @@ def login():
 def refresh():
     identity = get_jwt_identity()
     user_role = get_jwt().get("role", "User")
-    new_access = create_access_token(identity=identity, additional_claims={"role": user_role}, expires_delta=3600)
+    new_access = create_access_token(identity=identity, additional_claims={"role": user_role})
     print(f"Refreshed token for user {identity} with role {user_role}")
     return jsonify(access_token=new_access), 200
 

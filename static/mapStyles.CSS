@@ -66,9 +66,50 @@
 #close-info { background: none; border: none; font-size: 1.4rem; cursor: pointer; }
 .info-section { margin-top: 1rem; }
 .details-list li { margin: .4rem 0; }
-.forecast-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; }
+.forecast-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .5rem; 
+}
+
+
 .reviews-list { list-style: none; padding: 0; }
 .reviews-list li { border-bottom: 1px solid #eee; padding: .5rem 0; }
+li.user-review {
+    background-color: #f0f8ff;
+    border-left: 4px solid #007bff;
+    padding-left: 12px;
+}
+
+.review-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.btn-small {
+    padding: 4px 12px;
+    font-size: 0.85em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-edit {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #0056b3;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
 .btn-primary {
     background: #0066ff; color:#fff; border:none; padding:.5rem 1rem;
     cursor:pointer; border-radius:4px;

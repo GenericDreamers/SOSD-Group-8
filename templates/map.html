@@ -117,11 +117,24 @@
         </div>
     </div>
 
+<div id="token-warning-overlay" class="modal-overlay hidden">
+    <div class="modal">
+        <h3 style="margin-top: 0;">Session Expiring Soon</h3>
+        <p style="margin: 16px 0;">Your session will expire in <span id="warning-countdown">5:00</span> minutes.</p>
+        <p style="color: #666; font-size: 14px; margin: 16px 0;">Please save your work or refresh your session.</p>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="dismiss-warning" class="btn-secondary">Dismiss</button>
+            <button id="refresh-session" class="btn-primary">Refresh Session</button>
+        </div>
+    </div>
+</div>
+
  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
      crossorigin=""></script>
 <script src ="../static/map.js"></script>
 <script src ="../static/map-review.js"></script>
 <script src ="../static/map-itinerary.js"></script>
+<script src="../static/tokenManager.js"></script>
 </body>
 </html>

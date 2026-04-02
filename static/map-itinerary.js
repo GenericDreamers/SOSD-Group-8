@@ -432,9 +432,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveBtn) {
         saveBtn.addEventListener('click', saveItinerary);
     }
-
-    const addReviewBtn = document.getElementById('add-review');
-    if (addReviewBtn) {
-        addReviewBtn.addEventListener('click', addReview);
-    }
 })

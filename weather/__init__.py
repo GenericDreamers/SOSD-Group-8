@@ -61,6 +61,8 @@ def map_weather_code(code):
         82: "Mưa rào dữ dội",
         85: "Mưa tuyết nhẹ",
         86: "Mưa tuyết dày",
-        95: "Giông bão"
+        95: "Giông bão",
+        96: "Giông bão với mưa đá nhẹ",
+        99: "Giông bão với mưa đá nặng"
     }
     return mapping.get(code, f"Unknown code {code}")

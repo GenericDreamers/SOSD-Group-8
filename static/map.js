@@ -254,6 +254,7 @@ function showAddPlaceModal(lat, lng) {
                 <h3>Add Missing Place</h3>
                 <p>All fields marked with "*" are required.</p>
                 <p>Latitude: ${lat.toFixed(4)}, Longitude: ${lng.toFixed(4)}</p>
+                <p>Address: <span id="reverse-address">Loading...</span></p>
                 <label for="place-name-input">Place name *</label><br>
                 <input type="text" id="place-name-input" name="place-name-input" /> <br>
                 <label> Place Category * </label> <br>
@@ -275,6 +276,12 @@ function showAddPlaceModal(lat, lng) {
         </div>
     `;
     document.body.appendChild(form);
+
+    fetch(`./api/reverse?lat=${lat}&lng=${lng}`)
+        .then(r => r.text())
+        .then(address => {
+            document.getElementById('reverse-address').innerHTML = address;
+        });
     
     document.getElementById('submit-place').addEventListener('click', async () => {
         const name = document.getElementById('place-name-input').value.trim();

@@ -2,11 +2,19 @@
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-  setPlaceMarkers();
   L.control.zoom({position: 'bottomright'}).addTo(map);
   var marker = L.marker([0, 0]);
   var currentLocation = [0,0];
   var currentPlaceId = 0;
+  const filterState = {
+    city: "",
+    price_min: null,
+    price_max: null,
+    rating: null,
+    category: null,
+};
+
+const markerGroup = L.layerGroup().addTo(map);
 
 var baseIcon = L.Icon.extend({
     options: {
@@ -20,48 +28,50 @@ var restaurantIcon = new baseIcon({iconUrl: '../static/restaurant-icon.png'}),
     hotelIcon = new baseIcon({iconUrl: '../static/hotel-icon.png'}),
     attractionIcon = new baseIcon({iconUrl: '../static/attraction-icon.png'});
 
-const hotelGroup      = L.layerGroup();
-const restaurantGroup = L.layerGroup();   
-const attractionGroup = L.layerGroup();
-
-const overlayMaps = {
-    "Hotels"      : hotelGroup,
-    "Restaurants" : restaurantGroup,
-    "Attractions" : attractionGroup
-};
-
-L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
-
 function fetchJSON(url) {
     return fetch(url).then(r => r.json());
 }
 
-function setPlaceMarkers(){
-    fetchJSON('./api/places')
+function setPlaceMarkers() {
+    const params = new URLSearchParams();
+    if (filterState){
+        if (filterState.city) params.append("city", filterState.city);
+        if (filterState.price_min !== null) params.append("price_min", filterState.price_min);
+        if (filterState.price_max !== null) params.append("price_max", filterState.price_max);
+        if (filterState.rating !== null) params.append("rating", filterState.rating);
+        if (filterState.category) params.append("category", filterState.category);
+    }
+    
+    const url = `/search/api/filter?${params.toString()}`;
+    
+    fetchJSON(url)
         .then(places => {
+            markerGroup.clearLayers();
             console.log('Fetched places:', places);
             places.forEach(place => {
-                let icon, group;
+                let icon;
                 if (place.category === 'Hotel' || place.category === 'Khách sạn') {
                     icon = hotelIcon;
-                    group = hotelGroup;
+
                 } else if (place.category === 'Restaurant' || place.category === 'Nhà hàng') {
                     icon = restaurantIcon;
-                    group = restaurantGroup;
+
                 } else {
                     icon = attractionIcon;
-                    group = attractionGroup;
+
                 }
                 const placeMarker = L.marker([place.lat, place.lng], { icon })
-                                    .on('click', () => {showPlaceInfo(place.id);});
-                group.addLayer(placeMarker);
+                    .on('click', () => {showPlaceInfo(place.id);});
+                markerGroup.addLayer(placeMarker);
             });
-        });
+        })
+        .catch(err => console.error('Error fetching places:', err));
 }
 
-hotelGroup.addTo(map);
-restaurantGroup.addTo(map);
-attractionGroup.addTo(map);
+// Apply filters when user changes them
+function applyFilters() {
+    setPlaceMarkers();
+}
 
 function goToMarker(result) {
     const lat = parseFloat(result.lat);
@@ -76,6 +86,7 @@ const locationInfoPanel = document.getElementById('location-info');
 const input = document.getElementById('input');
 const suggestionsList = document.getElementById('suggestionsList');
 const itineraryPanel = document.getElementById('itinerary-panel'); 
+const filterPanel = document.getElementById('filter-panel');
 
 // Stop all events from bubbling to the map
 ['mousedown', 'mousemove', 'mouseup', 'click', 'touchstart', 'touchmove', 'touchend', 'wheel'].forEach(event => {
@@ -89,6 +100,9 @@ const itineraryPanel = document.getElementById('itinerary-panel');
         e.stopPropagation();
     });
     itineraryPanel.addEventListener(event, (e) => {
+        e.stopPropagation();
+    });
+    filterPanel.addEventListener(event, (e) => {
         e.stopPropagation();
     });
 });
@@ -173,6 +187,38 @@ document.getElementById('close-info').addEventListener('click', () => {
     document.getElementById('location-info').classList.add('hidden');
 });
 
+const toggleFiltersBtn = document.getElementById('toggle-filters');
+const closeFiltersBtn = document.getElementById('close-filters');
+const clearFiltersBtn = document.getElementById('clear-filters');
+
+toggleFiltersBtn.addEventListener('click', () => {
+    filterPanel.classList.toggle('open');
+});
+
+closeFiltersBtn.addEventListener('click', () => {
+    filterPanel.classList.remove('open');
+});
+clearFiltersBtn.addEventListener('click', () => {
+    filterState.price_min = null;
+    filterState.price_max = null;
+    filterState.rating = null;
+    filterState.category = null;
+    document.getElementById('min-price').value = '';
+    document.getElementById('max-price').value = '';
+    document.getElementById('rating').value = '';
+    document.getElementById('category').value = '';
+    applyFilters();
+});
+
+// Close filter panel when clicking outside of it
+document.addEventListener('click', (e) => {
+    if (!filterPanel.contains(e.target) && !toggleFiltersBtn.contains(e.target)) {
+        filterPanel.classList.remove('open');
+    }
+});
+
+// ==== Search functionality ====
+
 let timeout;
 let selectedIndex = -1;
 
@@ -183,7 +229,7 @@ input.addEventListener('input', () => {
     selectedIndex = -1;
     if (!q) return;
     timeout = setTimeout(() => {
-        fetch(`./api/autocomplete?q=${q}`)
+        fetch(`/search/api/autocomplete?q=${q}`)
             .then(r => r.json())
             .then(results => {
                 suggestionsList.innerHTML = '';
@@ -265,7 +311,7 @@ function showAddPlaceModal(lat, lng) {
                     <option value="Attraction">Attraction</option>
                 </select> <br>
                 <label for="place-price-input">Price</label><br>
-                <input type="text" id="place-price-input" name="place-price-input" /> <br>
+                <input type="number" id="place-price-input" name="place-price-input" /> <br>
                 <label for="place-opening-input">Opening Hours</label><br>
                 <input type="text" id="place-opening-input" name="place-opening-input" /> <br>
                 <div class="modal-buttons">
@@ -308,7 +354,7 @@ async function addMissingPlace(lat, lng, name, category, price, openingHours) {
     try {
         const response = await fetch('./api/places', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
             body: JSON.stringify({ name, category, lat, lng, price, openingHours })
         });
         
@@ -323,3 +369,35 @@ async function addMissingPlace(lat, lng, name, category, price, openingHours) {
         alert('Error submitting place.');
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const minPriceInput = document.getElementById('min-price');
+    const maxPriceInput = document.getElementById('max-price');
+    const ratingInput = document.getElementById('rating');
+    const categoryInput = document.getElementById('category');
+    const sortInput = document.getElementById('sort');
+    
+    if (minPriceInput) minPriceInput.addEventListener('change', (e) => {
+        filterState.price_min = e.target.value ? parseFloat(e.target.value) : null;
+        applyFilters();
+    });
+    if (maxPriceInput) maxPriceInput.addEventListener('change', (e) => {
+        filterState.price_max = e.target.value ? parseFloat(e.target.value) : null;
+        applyFilters();
+    });
+    if (ratingInput) ratingInput.addEventListener('change', (e) => {
+        filterState.rating = e.target.value ? parseFloat(e.target.value) : null;
+        applyFilters();
+    });
+    if (categoryInput) categoryInput.addEventListener('change', (e) => {
+        filterState.category = e.target.value || null;
+        applyFilters();
+    });
+    if (sortInput) sortInput.addEventListener('change', (e) => {
+        filterState.sort = e.target.value || "";
+        applyFilters();
+    });
+    
+    // Initial load
+    setPlaceMarkers();
+});

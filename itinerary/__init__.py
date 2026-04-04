@@ -83,7 +83,7 @@ def get_itinerary(it_id):
 @jwt_required()
 @require_ownership_or_admin
 def update_itinerary(it_id):
-    payload = request.form
+    payload = request.get_json()
     itinerary = query_db("SELECT * FROM Itineraries WHERE ID = ?", [it_id], one=True)
     if not itinerary:
         return jsonify({"msg": "Itinerary not found"}), 404
@@ -99,6 +99,8 @@ def delete_itinerary(it_id):
         return jsonify({"msg": "Itinerary not found"}), 404
     execute_db("DELETE FROM Itineraries WHERE ID = ?", [it_id])
     return jsonify({"msg": "Itinerary deleted"}), 200
+
+# These are currently not used, may be useful in the future
 
 # @itinerary_bp.route("/api/<int:it_id>/items", methods=["GET"])
 # @jwt_required()

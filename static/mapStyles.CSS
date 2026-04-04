@@ -20,15 +20,6 @@
     transition: transform .3s ease;
     z-index: 500;
 }
-#filter-panel {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background-color: white;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
 
 #input{
     position: absolute;
@@ -341,4 +332,93 @@ li.user-review {
   font-size: 16px;
   border: 2px solid white;
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+/* Filter Panel */
+#filter-panel {
+    position: absolute;
+    top: 10px;
+    right: -400px;
+    width: 300px;
+    background-color: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 700;
+    transition: right 0.3s ease;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+#filter-panel.open {
+    right: 10px;
+}
+
+#toggle-filters {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    z-index: 650;
+    padding: 10px 15px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#toggle-filters:hover {
+    background: #f5f5f5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+#close-filters {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.filter-panel h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.filter-group {
+    margin-bottom: 15px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: #0066ff;
+    box-shadow: 0 0 4px rgba(0, 102, 255, 0.3);
+}
+
+.filter-group select {
+    cursor: pointer;
+    background-color: white;
 }

@@ -1,9 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt, jwt_required
 from review import get_average
 from db import query_db, execute_db
 import requests
-import urllib.parse
 
 maps_bp = Blueprint("maps", __name__, url_prefix="/map")
 
@@ -31,8 +30,16 @@ def get_places(placeID = None):
     return jsonify(places)
 
 @maps_bp.route("/api/places", methods=["POST"])
+@jwt_required()
 def add_place():
     data = request.get_json()
+    isAdmin = get_jwt().get("role") == "Admin" if get_jwt() else False
+    if not isAdmin:
+        confirmed = 0
+        msg = "Place submitted successfully. Awaiting admin confirmation."
+    else:
+        confirmed = 1
+        msg = "Place added successfully."
     
     # Validate required fields
     if not data or not data.get('name') or not data.get('category'):
@@ -45,24 +52,14 @@ def add_place():
         return jsonify({'error': 'Latitude and longitude are required'}), 400
     
     try:
-        execute_db("INSERT INTO Places(Name, Category, Price, Latitude, Longitude, Opening_hours, Confirmed) VALUES (?, ?, ?, ?, ?, ?, ?)", [data.get('name'), data.get('category'), data.get('price', "?"), float(lat), float(lng), data.get('opening_hours', "?"), 0])
+        execute_db("INSERT INTO Places(Name, Category, Price, Latitude, Longitude, Opening_hours, Confirmed) VALUES (?, ?, ?, ?, ?, ?, ?)", [data.get('name'), data.get('category'), data.get('price', "?"), float(lat), float(lng), data.get('opening_hours', "?"), confirmed])
         
         return jsonify({
-            'message': 'Place submitted successfully. Awaiting admin confirmation.'
+            'message': msg
         }), 201
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@maps_bp.route("/api/autocomplete")
-def autocomplete():
-    q = request.args.get("q", "")
-    q = urllib.parse.unquote(q)
-    q = f"%{q}%"
-    
-    places = query_db("SELECT ID, Name, Latitude, Longitude FROM Places WHERE Name LIKE ?", [q])
-    places = [{"lat": p["Latitude"], "lng": p["Longitude"], "name": p["Name"], "id": str(p["ID"])} for p in places]
-    return places
 
 # frontend
 @maps_bp.route("/")

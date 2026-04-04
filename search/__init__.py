@@ -1,57 +1,64 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
 from db import query_db
-search_bp = Blueprint('search', __name__, url_prefix='/api/search')
+from review import get_average
+import urllib.parse
 
-@search_bp.route("/autocomplete", methods=["GET"])
-@jwt_required()
+search_bp = Blueprint('search', __name__, url_prefix='/search')
+
+@search_bp.route("/api/autocomplete")
 def autocomplete():
     q = request.args.get("q", "")
-    if q:
-        suggestions = query_db("SELECT Name FROM Places WHERE Name LIKE ?", [f"%{q}%"])
-    else:
-        suggestions = []
-    return jsonify(suggestions=suggestions), 200
+    q = urllib.parse.unquote(q)
+    q = f"%{q}%"
+    
+    places = query_db("SELECT ID, Name, Latitude, Longitude FROM Places WHERE Name LIKE ?", [q])
+    places = [{"lat": p["Latitude"], "lng": p["Longitude"], "name": p["Name"], "id": str(p["ID"])} for p in places]
+    return places
 
-@search_bp.route("/results", methods=["GET"])
-@jwt_required()
-def results():
-    filters = []
+@search_bp.route("/api/filter", methods=["GET"])
+def filter_places():
+    """Filter places based on query parameters."""
+    
+    # Build WHERE clause conditions
+    conditions = []
+    params = []
+    
     city = request.args.get("city")
     if city:
-        filters.append(query_db("SELECT * FROM Places WHERE City like ?", [f"%{city}%"]))
+        conditions.append("City LIKE ?")
+        params.append(f"%{city}%")
+    
     min_price = request.args.get("price_min")
     if min_price:
-        filters.append(query_db("SELECT * FROM Places WHERE Price >= ?", [float(min_price)]))
+        conditions.append("Price >= ?")
+        params.append(float(min_price))
+    
     max_price = request.args.get("price_max")
     if max_price:
-        filters.append(query_db("SELECT * FROM Places WHERE Price <= ?", [float(max_price)]))
+        conditions.append("Price <= ?")
+        params.append(float(max_price))
+    
+    category = request.args.get("category")
+    if category == "Hotel":
+        conditions.append("(Category = ? OR Category = 'Khách sạn')")
+        params.append(category)
+    elif category == "Restaurant":
+        conditions.append("(Category = ? OR Category = 'Nhà hàng')")
+        params.append(category)
+    elif category == "Attraction":
+        conditions.append("Category NOT IN ('Hotel', 'Restaurant', 'Khách sạn', 'Nhà hàng')")
+    
+    # Build complete WHERE clause
+    where_clause = " AND ".join(conditions) if conditions else "1=1"
+    
+    # Get filtered and sorted results
+    query = f"SELECT * FROM Places WHERE {where_clause}"
+    places = query_db(query, params)
+    
+    places = [{"id": str(p["ID"]), "lat": str(p["Latitude"]), "lng": str(p["Longitude"]), "name": p["Name"], "category": p["Category"], "price": str(p["Price"]), "opening_hours": p["Opening_hours"], "rating": str(get_average(p["ID"])), "confirmed": str(p["Confirmed"])} for p in places]
+
     rating = request.args.get("rating")
     if rating:
-        filters.append(query_db("SELECT * FROM Places WHERE Rating >= ?", [float(rating)]))
+        places = [p for p in places if p["rating"] != "-" and float(p["rating"]) >= float(rating)]
 
-    query = query_db("SELECT * FROM Places")
-    for f in filters:
-        query = query.intersect(f)  # combine filters using intersection
-
-    # sorting
-    sort = request.args.get("sort")
-    if sort == "price_asc":
-        query = query.order_by("Price ASC")
-    elif sort == "rating_asc":
-        query = query.order_by("Rating ASC")
-    elif sort == "price_desc":
-        query = query.order_by("Price DESC")
-    elif sort == "rating_desc":
-        query = query.order_by("Rating DESC")
-
-    page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 20))
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-
-    return jsonify(
-        items=query_db("SELECT * FROM Places WHERE ID IN (SELECT ID FROM Places LIMIT ? OFFSET ?)", [per_page, (page - 1) * per_page]),
-        total=pagination.total,
-        page=page,
-        per_page=per_page,
-    )
+    return jsonify(places)

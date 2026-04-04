@@ -317,6 +317,8 @@ async function openLoadModal() {
                             ${new Date(itinerary.CreatedAt).toLocaleString()}
                         </p>
                     </div>
+                    <button class="btn-delete" data-id="${itinerary.ID}">Delete</button>
+                    <button class="btn-edit" data-id="${itinerary.ID}">Edit Title</button>
                     <button class="btn-load" data-id="${itinerary.ID}">Load</button>
                 </div>
             `).join('');
@@ -346,8 +348,65 @@ async function openLoadModal() {
                     overlay.classList.add('hidden');
                 });
             });
+
+            container.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.background = '#d32f2f';
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.background = '#f44336';
+                });
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const itineraryId = e.target.dataset.id;
+                    if (confirm('Are you sure you want to delete this itinerary?')) {
+                        try {
+                            const response = await fetch(`/itinerary/api/${itineraryId}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                            });
+                            if (response.ok) {
+                                e.target.closest('.itinerary-card').remove();
+                            } else {
+                                alert('Failed to delete itinerary');
+                            }
+                        } catch (error) {
+                            console.error('Delete failed:', error);
+                            alert('Failed to delete itinerary');
+                        }
+                    }
+                });
+            });
+            container.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.background = '#1976d2';
+                });
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.background = '#2196F3';
+                });
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const itineraryId = e.target.dataset.id;
+                    const newTitle = prompt('Enter new title for this itinerary:', e.target.closest('.itinerary-card').querySelector('h4').textContent);
+                    if (newTitle) {
+                        fetch(`/itinerary/api/${itineraryId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
+                            body: JSON.stringify({ title: newTitle })
+                        }).then(response => {
+                            if (response.ok) {
+                                e.target.closest('.itinerary-card').querySelector('h4').textContent = newTitle;
+                            } else {
+                                alert('Failed to update title');
+                            }
+                        }).catch(error => {
+                            console.error('Update failed:', error);
+                            alert('Failed to update title');
+                        });
+                    }
+                });
+            });
         }
-        
         overlay.classList.remove('hidden');
     } catch (error) {
         console.error('Failed to load itineraries:', error);

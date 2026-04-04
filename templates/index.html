@@ -1,316 +1,69 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Travel — Khám phá thế giới thông minh</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='styles_index.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Testing</title>
 </head>
 <body>
-
-<nav>
-  <div class="nav-logo">Smart<span>Travel</span></div>
-  <ul class="nav-links">
-    <li><a href="/map">Bản đồ</a></li>
-    <li><a href="/weather/current">Thời tiết</a></li>
-    <li><a href="/booking/api/my">Đặt chỗ</a></li>
-    <li><a href="#itinerary">Lịch trình</a></li>
-    <li><a href="#review">Đánh giá</a></li>
-    <li><a href="#notification">Thông báo</a></li>
-  </ul>
-  <div class="nav-auth">
-    <a href="/auth/login" class="nav-login">Đăng nhập</a>
-    <a href="/auth/register" class="nav-cta">Đăng ký ngay</a>
-  </div>
-</nav>
-
-<section class="hero">
-  <div class="hero-left">
-    <div class="hero-tag">Hệ thống du lịch thông minh</div>
-    <h1>Khám phá thế giới<br>theo cách <em>riêng</em><br>của bạn</h1>
-    <p class="hero-desc">Lên kế hoạch chuyến đi thông minh với bản đồ tương tác, dự báo thời tiết thực tế, đặt chỗ tức thì và hành trình cá nhân hoá hoàn toàn.</p>
-    <div class="hero-actions">
-      <a href="/auth/register" class="btn-primary">Đăng ký ngay</a>
-      <a href="/map" class="btn-outline">Khám phá bản đồ</a>
-      <div class="hero-card">
-        <div class="card-icon">🗺️</div>
-        <div class="card-title">Lịch trình tối ưu</div>
-        <div class="card-sub">AI gợi ý lộ trình cho bạn</div>
-      </div>
-    </div>
-    <div class="hero-stats">
-      <div>
-        <div class="stat-num">360+</div>
-        <div class="stat-label">Địa điểm nổi bật</div>
-      </div>
-      <div>
-        <div class="stat-num">36K</div>
-        <div class="stat-label">Người dùng</div>
-      </div>
-      <div>
-        <div class="stat-num">4.9★</div>
-        <div class="stat-label">Đánh giá trung bình</div>
-      </div>
-    </div>
-  </div>
-  <div class="hero-right">
-    <div class="hero-img-grid">
-      <div class="img-cell">
-        <img src="https://bcp.cdnchinhphu.vn/334894974524682240/2025/9/18/cdhoian5-17581621538711341831070.jpeg" alt="Hội An">
-        <div class="img-cell-label">Hội An</div>
-      </div>
-      <div class="img-cell">
-        <img src="https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2023/3/9/1155741/Du-Lich-Vinh-Ha-Long-01.jpg" alt="Hạ Long">
-        <div class="img-cell-label">Vịnh Hạ Long</div>
-      </div>
-      <div class="img-cell">
-        <img src="https://static.vinwonders.com/production/canh-dep-da-lat-1.jpg" alt="Đà Lạt">
-        <div class="img-cell-label">Đà Lạt</div>
-      </div>
-      <div class="img-cell">
-        <img src="https://vcdn1-dulich.vnecdn.net/2021/02/03/520-1612317009-6154-1612322913-1614-1340-1612348316.png?w=500&h=300&q=100&dpr=1&fit=crop&s=VTlGVyPrQ7orJUs4SojrdQ" alt="Sapa">
-        <div class="img-cell-label">Sapa</div>
-      </div>
-    </div>
-    <div class="img-overlay"></div>
-  </div>
-</section>
-
-<section class="features" id="features">
-  <div class="section-label">Tính năng nổi bật</div>
-  <div class="section-title">Tất cả những gì bạn cần cho một chuyến đi hoàn hảo</div>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="fc-num">01</div>
-      <div class="fc-icon">🗺️</div>
-      <div class="fc-title">Bản đồ tương tác</div>
-      <div class="fc-desc">Tìm kiếm và khám phá địa điểm trên bản đồ trực quan. Xem đánh giá, giờ mở cửa và lộ trình tối ưu chỉ trong vài giây.</div>
-    </div>
-    <div class="feature-card">
-      <div class="fc-num">02</div>
-      <div class="fc-icon">🌤️</div>
-      <div class="fc-title">Thời tiết thực tế</div>
-      <div class="fc-desc">Dự báo thời tiết chính xác theo vị trí. Lên kế hoạch chuyến đi phù hợp với điều kiện thời tiết tốt nhất.</div>
-    </div>
-    <div class="feature-card">
-      <div class="fc-num">03</div>
-      <div class="fc-icon">📅</div>
-      <div class="fc-title">Đặt chỗ thông minh</div>
-      <div class="fc-desc">Đặt phòng khách sạn, vé tham quan và nhà hàng trực tiếp. Thanh toán an toàn và nhận xác nhận tức thì.</div>
-    </div>
-    <div class="feature-card">
-      <div class="fc-num">04</div>
-      <div class="fc-icon">✈️</div>
-      <div class="fc-title">Lịch trình cá nhân</div>
-      <div class="fc-desc">Tạo hành trình theo ngày, quản lý các địa điểm muốn tới. Chia sẻ lịch trình với bạn bè và gia đình dễ dàng.</div>
-    </div>
-    <div class="feature-card">
-      <div class="fc-num">05</div>
-      <div class="fc-icon">⭐</div>
-      <div class="fc-title">Đánh giá thực</div>
-      <div class="fc-desc">Hàng nghìn đánh giá từ người dùng thực. Tìm những địa điểm được yêu thích nhất và chia sẻ trải nghiệm của bạn.</div>
-    </div>
-    <div class="feature-card">
-      <div class="fc-num">06</div>
-      <div class="fc-icon">🔔</div>
-      <div class="fc-title">Thông báo thông minh</div>
-      <div class="fc-desc">Nhận nhắc nhở lịch trình, cập nhật thời tiết và thông tin ưu đãi. Không bao giờ bỏ lỡ điều quan trọng.</div>
-    </div>
-  </div>
-</section>
-
-<section class="destinations" id="destinations">
-  <div class="section-label">Điểm đến nổi bật</div>
-  <div class="section-title">Việt Nam tươi đẹp<br>đang chờ bạn</div>
-  <div class="dest-grid">
-    <div class="dest-card">
-      <img src="https://bcp.cdnchinhphu.vn/334894974524682240/2025/9/18/cdhoian5-17581621538711341831070.jpeg" alt="Hội An">
-      <div class="dest-overlay"></div>
-      <div class="dest-info">
-        <div class="dest-name">Phố cổ Hội An</div>
-        <div class="dest-meta">
-          <span class="dest-tag">Di sản thế giới</span>
-          <span class="dest-rating">★ 4.9</span>
-        </div>
-      </div>
-    </div>
-    <div class="dest-card">
-      <img src="https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2023/3/9/1155741/Du-Lich-Vinh-Ha-Long-01.jpg" alt="Hạ Long">
-      <div class="dest-overlay"></div>
-      <div class="dest-info">
-        <div class="dest-name">Vịnh Hạ Long</div>
-        <div class="dest-meta">
-          <span class="dest-tag">Kỳ quan thiên nhiên</span>
-          <span class="dest-rating">★ 4.8</span>
-        </div>
-      </div>
-    </div>
-    <div class="dest-card">
-      <img src="https://static.vinwonders.com/production/canh-dep-da-lat-1.jpg" alt="Đà Lạt">
-      <div class="dest-overlay"></div>
-      <div class="dest-info">
-        <div class="dest-name">Đà Lạt</div>
-        <div class="dest-meta">
-          <span class="dest-tag">Thành phố ngàn hoa</span>
-          <span class="dest-rating">★ 4.7</span>
-        </div>
-      </div>
-    </div>
-    <div class="dest-card">
-      <img src="https://vcdn1-dulich.vnecdn.net/2021/02/03/520-1612317009-6154-1612322913-1614-1340-1612348316.png?w=500&h=300&q=100&dpr=1&fit=crop&s=VTlGVyPrQ7orJUs4SojrdQ" alt="Sapa">
-      <div class="dest-overlay"></div>
-      <div class="dest-info">
-        <div class="dest-name">Sapa</div>
-        <div class="dest-meta">
-          <span class="dest-tag">Núi rừng Tây Bắc</span>
-          <span class="dest-rating">★ 4.8</span>
-        </div>
-      </div>
-    </div>
-    <div class="dest-card">
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRI1ii2fnqbi06_Yu19ualKr8PvW8BvYHZQCg&s" alt="Phú Quốc">
-      <div class="dest-overlay"></div>
-      <div class="dest-info">
-        <div class="dest-name">Phú Quốc</div>
-        <div class="dest-meta">
-          <span class="dest-tag">Đảo ngọc</span>
-          <span class="dest-rating">★ 4.9</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="how">
-  <div>
-    <div class="section-label">Cách hoạt động</div>
-    <div class="section-title">Lên kế hoạch trong vài phút</div>
-    <div class="how-steps">
-      <div class="how-step">
-        <div class="step-num">01</div>
-        <div class="step-content">
-          <div class="step-title">Đăng ký tài khoản</div>
-          <div class="step-desc">Tạo tài khoản miễn phí trong 30 giây. Bảo mật với JWT và OAuth2.</div>
-        </div>
-      </div>
-      <div class="how-step">
-        <div class="step-num">02</div>
-        <div class="step-content">
-          <div class="step-title">Tìm kiếm địa điểm</div>
-          <div class="step-desc">Lọc theo thành phố, giá cả, đánh giá. Xem trực tiếp trên bản đồ tương tác.</div>
-        </div>
-      </div>
-      <div class="how-step">
-        <div class="step-num">03</div>
-        <div class="step-content">
-          <div class="step-title">Tạo lịch trình</div>
-          <div class="step-desc">Thêm các địa điểm vào hành trình theo ngày. Sắp xếp thứ tự linh hoạt.</div>
-        </div>
-      </div>
-      <div class="how-step">
-        <div class="step-num">04</div>
-        <div class="step-content">
-          <div class="step-title">Đặt chỗ & thanh toán</div>
-          <div class="step-desc">Đặt trực tiếp qua nền tảng. Nhận xác nhận và thông báo tức thì.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="how-visual">
-    <div class="phone-mockup">
-      <div class="phone-screen">
-        <div class="ps-bar">
-          <span class="ps-bar-icon">🔍</span>
-          <span class="ps-bar-text">Tìm địa điểm...</span>
-        </div>
-        <div class="ps-map">
-          <div class="ps-pin"></div>
-        </div>
-        <div class="ps-cards">
-          <div class="ps-item">
-            <div class="ps-item-dot" style="background:#7A9E87"></div>
-            <div>
-              <div class="ps-item-title">Phố cổ Hội An</div>
-              <div class="ps-item-sub">★ 4.9 · Di sản</div>
-            </div>
-            <div class="ps-item-price">120K</div>
-          </div>
-          <div class="ps-item">
-            <div class="ps-item-dot" style="background:#C4533A"></div>
-            <div>
-              <div class="ps-item-title">Vịnh Hạ Long</div>
-              <div class="ps-item-sub">★ 4.8 · Thiên nhiên</div>
-            </div>
-            <div class="ps-item-price">350K</div>
-          </div>
-          <div class="ps-item">
-            <div class="ps-item-dot" style="background:#C9A84C"></div>
-            <div>
-              <div class="ps-item-title">Đà Lạt</div>
-              <div class="ps-item-sub">★ 4.7 · Nghỉ dưỡng</div>
-            </div>
-            <div class="ps-item-price">200K</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="cta-section">
-  <div class="section-label">Bắt đầu ngay hôm nay</div>
-  <div class="section-title">Chuyến đi tuyệt vời nhất đang chờ bạn</div>
-  <p>Tham gia cùng hàng nghìn người dùng đang khám phá Việt Nam thông minh hơn mỗi ngày.</p>
-  <div class="cta-buttons">
-    <a href="/auth/register" class="btn-primary">Đăng ký miễn phí</a>
-    <a href="/auth/login" class="btn-outline">Đăng nhập</a>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-grid">
-    <div>
-      <div class="footer-brand">Smart<span>Travel</span></div>
-      <div class="footer-tagline">Hệ thống du lịch thông minh. Khám phá Việt Nam theo cách của bạn với công nghệ SOA hiện đại.</div>
-    </div>
-    <div class="footer-col">
-      <div class="footer-col-title">Thông tin liên hệ</div>
-      <ul>
-        <li><a href="/map">Gmail: abc@gamil.com</a></li>
-<!--        <li><a href="/weather/current?lat=21.028&lon=105.834">Thời tiết</a></li>-->
-        <li><a href="/booking/api/my">Số điện thoại: 113</a></li>
-        <li><a href="/itinerary/api/create">Facebook: Cục điều tra phòng trống mại dâm</a></li>
-      </ul>
-    </div>
-    <div class="footer-col">
-      <div class="footer-col-title">Tính năng</div>
-      <ul>
-        <li><a href="/auth/register">Đăng ký</a></li>
-        <li><a href="/auth/login">Đăng nhập</a></li>
-        <li><a href="/analytics/api/list-users">Analytics</a></li>
-        <li><a href="/booking/api/create">Đặt chỗ</a></li>
-        <li><a href="/notification/send">Thông báo</a></li>
-        <li><a href="/analytics/api/list-users">Bản đồ</a></li>
-        <li><a href="/analytics/api/list-users">Lịch trình</a></li>
-      </ul>
-    </div>
-    <div class="footer-col">
-      <div class="footer-col-title">Công nghệ</div>
-      <ul>
-        <li><a href="#">Flask · Python</a></li>
-        <li><a href="#">JWT · OAuth2</a></li>
-        <li><a href="#">REST API</a></li>
-        <li><a href="#">Docker · K8s</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <p>© 2025 SmartTravel — Nhóm 8 · SOSD</p>
-    <p style="font-size:12px;color:rgba(253,250,245,0.3)">Spring Boot · Node.js · Microservices</p>
-  </div>
-</footer>
-
+    <h1>Welcome to Smart Travel</h1>
+    <p>Trang này dùng test các chức năng của ứng dụng. Có rất nhiều trang chưa có template hay gì cả</p>
+    <ul>
+        <li><a href="/auth/register">Register</a></li>
+        <li><a href="/auth/login">Login</a></li>
+        <li><a href="/map">View Map</a></li>
+        <li><a href="/profile">View Profile</a></li>
+        <li><a href="/admin">Admin Dashboard</a></li>
+        <li><a href="/auth/api/me" id="api-test-me">API /me Test</a></li>
+        <li><a href="/auth/api/refresh" id="api-test-refresh">API /refresh Test</a></li>
+    </ul>
 </body>
+<script>
+    document.getElementById('api-test-me').addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        try {
+            const response = await fetch('/auth/api/me', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('API Test Success: ' + JSON.stringify(data));
+            } else {
+                alert('API Test Failed: ' + data.msg);
+            }
+        } catch (error) {
+            console.error('API Test error:', error);
+            alert('API Test error');
+        }
+    });
+    document.getElementById('api-test-refresh').addEventListener('click', async (e) => {
+        e.preventDefault();
+        
+        try {
+            const response = await fetch('/auth/api/refresh', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('refresh_token')
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.access_token) {
+                localStorage.setItem('access_token', data.access_token);
+                alert('Token refreshed successfully');
+            } else {
+                alert('Token refresh failed: ' + data.msg);
+            }
+        } catch (error) {
+            console.error('Token refresh error:', error);
+            alert('Token refresh error');
+        }
+    });
+</script>
 </html>

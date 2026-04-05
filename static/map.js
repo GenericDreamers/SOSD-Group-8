@@ -136,17 +136,17 @@ async function showPlaceInfo(placeId) {
             fetchJSON(`/weather/current?lat=${place.lat}&lng=${place.lng}`)
             .then(weather => {
                 document.getElementById('weather-current').innerHTML = `
-                    <p><strong>Temp:</strong> ${weather.current.temperature}°C</p>
-                    <p><strong>Condition:</strong> ${weather.current.weathercode}</p>
-                    <p><strong>Wind:</strong> ${weather.current.windspeed} m/s</p>
+                    <p><strong>Nhiệt độ:</strong> ${weather.current.temperature}°C</p>
+                    <p><strong>Điều kiện thời tiết:</strong> ${weather.current.weathercode}</p>
+                    <p><strong>Gió:</strong> ${weather.current.windspeed} m/s</p>
                 `;
                 
                 const forecastHTML = weather.forecast_5day.time.map((date, index) => `
                     <div class="forecast-item">
-                        <p><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</p>
-                        <p><strong>Temperature:</strong> ${weather.forecast_5day.temperature_2m_min[index]}-${weather.forecast_5day.temperature_2m_max[index]}°C</p>
-                        <p><strong>Weather:</strong> ${weather.forecast_5day.weather_code[index]}</p>
-                        <p><strong>Precipitation:</strong> ${weather.forecast_5day.precipitation_sum[index]} mm</p>
+                        <p><strong>Ngày:</strong> ${new Date(date).toLocaleDateString()}</p>
+                        <p><strong>Nhiệt độ:</strong> ${weather.forecast_5day.temperature_2m_min[index]}-${weather.forecast_5day.temperature_2m_max[index]}°C</p>
+                        <p><strong>Thời tiết:</strong> ${weather.forecast_5day.weather_code[index]}</p>
+                        <p><strong>Mưa:</strong> ${weather.forecast_5day.precipitation_sum[index]} mm</p>
                     </div>
                 `).join('');
                 document.getElementById('weather-forecast').innerHTML = forecastHTML;
@@ -173,10 +173,10 @@ async function showPlaceInfo(placeId) {
                             toggleItineraryPanel();
                         renderItineraryList();
                         drawRoute();
-                        btn.textContent = '✓ Added to Route';
+                        btn.textContent = '✓ Đã thêm vào hành trình';
                         btn.disabled = true;
                         setTimeout(() => {
-                            btn.textContent = '+ Add to Route';
+                            btn.textContent = '+ Thêm vào hành trình';
                             btn.disabled = false;
                         }, 2000);
                     }

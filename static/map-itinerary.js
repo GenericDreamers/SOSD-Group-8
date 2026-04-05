@@ -6,7 +6,7 @@ const itinerary = {
     addLocation(place) {
         // Prevent duplicates
         if (this.locations.some(p => p.id === place.id)) {
-            alert(`${place.name} is already in your itinerary`);
+            alert(`${place.name} đã có trong hành trình của bạn!`);
             return false;
         }
         
@@ -139,7 +139,7 @@ function renderItineraryList() {
     list.innerHTML = '';
     
     if (itinerary.locations.length === 0) {
-        list.innerHTML = '<li style="padding: 20px; text-align: center; color: #999;">No locations added yet</li>';
+        list.innerHTML = '<li style="padding: 20px; text-align: center; color: #999;">Chưa thêm địa điểm nào</li>';
         document.getElementById('clear-itinerary').disabled = true;
         document.getElementById('save-itinerary').disabled = true;
         document.getElementById('optimize-route').disabled = true;
@@ -159,7 +159,7 @@ function renderItineraryList() {
             <div class="item-content">
                 <h4>${location.name}</h4>
                 <p class="item-category">${location.category}</p>
-                <textarea class="item-note" placeholder="Add a note..." data-index="${index}">${location.note || ''}</textarea>
+                <textarea class="item-note" placeholder="Điền ghi chú ở đây..." data-index="${index}">${location.note || ''}</textarea>
             </div>
             <button class="btn-remove" data-index="${index}" aria-label="Remove">✕</button>
         `;
@@ -316,7 +316,7 @@ async function openLoadModal() {
         console.log('Loaded itineraries:', data);
         
         if (data.length === 0) {
-            container.innerHTML = '<p class="empty-state" style="text-align: center; color: #999; padding: 20px; margin: 0;">No saved itineraries yet</p>';
+            container.innerHTML = '<p class="empty-state" style="text-align: center; color: #999; padding: 20px; margin: 0;">Bạn chưa lưu hành trình nào</p>';
         } else {
             container.innerHTML = data.map(itinerary => `
                 <div class="itinerary-card" data-id="${itinerary.ID}">
@@ -327,9 +327,9 @@ async function openLoadModal() {
                             ${new Date(itinerary.CreatedAt).toLocaleString()}
                         </p>
                     </div>
-                    <button class="btn-delete" data-id="${itinerary.ID}">Delete</button>
-                    <button class="btn-edit" data-id="${itinerary.ID}">Edit Title</button>
-                    <button class="btn-load" data-id="${itinerary.ID}">Load</button>
+                    <button class="btn-delete" data-id="${itinerary.ID}">Xóa</button>
+                    <button class="btn-edit" data-id="${itinerary.ID}">Đổi tên</button>
+                    <button class="btn-load" data-id="${itinerary.ID}">Tải</button>
                 </div>
             `).join('');
             
@@ -345,12 +345,6 @@ async function openLoadModal() {
             
             // Add click handlers to load buttons
             container.querySelectorAll('.btn-load').forEach(btn => {
-                btn.addEventListener('mouseenter', () => {
-                    btn.style.background = '#45a049';
-                });
-                btn.addEventListener('mouseleave', () => {
-                    btn.style.background = '#4CAF50';
-                });
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const itineraryId = e.target.dataset.id;
@@ -360,16 +354,10 @@ async function openLoadModal() {
             });
 
             container.querySelectorAll('.btn-delete').forEach(btn => {
-                btn.addEventListener('mouseenter', () => {
-                    btn.style.background = '#d32f2f';
-                });
-                btn.addEventListener('mouseleave', () => {
-                    btn.style.background = '#f44336';
-                });
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const itineraryId = e.target.dataset.id;
-                    if (confirm('Are you sure you want to delete this itinerary?')) {
+                    if (confirm('Bạn có thực sự muốn xóa hành trình này không?')) {
                         try {
                             const response = await fetch(`/itinerary/api/${itineraryId}`, {
                                 method: 'DELETE',
@@ -378,26 +366,20 @@ async function openLoadModal() {
                             if (response.ok) {
                                 e.target.closest('.itinerary-card').remove();
                             } else {
-                                alert('Failed to delete itinerary');
+                                alert('Không thành công khi xóa hành trình');
                             }
                         } catch (error) {
                             console.error('Delete failed:', error);
-                            alert('Failed to delete itinerary');
+                            alert('Không thành công khi xóa hành trình');
                         }
                     }
                 });
             });
             container.querySelectorAll('.btn-edit').forEach(btn => {
-                btn.addEventListener('mouseenter', () => {
-                    btn.style.background = '#1976d2';
-                });
-                btn.addEventListener('mouseleave', () => {
-                    btn.style.background = '#2196F3';
-                });
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const itineraryId = e.target.dataset.id;
-                    const newTitle = prompt('Enter new title for this itinerary:', e.target.closest('.itinerary-card').querySelector('h4').textContent);
+                    const newTitle = prompt('Ghi tên mới cho hành trình:', e.target.closest('.itinerary-card').querySelector('h4').textContent);
                     if (newTitle) {
                         fetch(`/itinerary/api/${itineraryId}`, {
                             method: 'PUT',
@@ -407,11 +389,11 @@ async function openLoadModal() {
                             if (response.ok) {
                                 e.target.closest('.itinerary-card').querySelector('h4').textContent = newTitle;
                             } else {
-                                alert('Failed to update title');
+                                alert('Không thành công khi cập nhật tên');
                             }
                         }).catch(error => {
                             console.error('Update failed:', error);
-                            alert('Failed to update title');
+                            alert('Không thành công khi cập nhật tên');
                         });
                     }
                 });
@@ -419,8 +401,8 @@ async function openLoadModal() {
         }
         overlay.classList.remove('hidden');
     } catch (error) {
-        console.error('Failed to load itineraries:', error);
-        alert('Failed to load saved itineraries');
+        console.error('Thất bại khi tải hành trình đã lưu:', error);
+        alert('Thất bại khi tải hành trình đã lưu');
     }
 }
 
@@ -466,7 +448,7 @@ async function loadSavedItinerary(itineraryId) {
         drawRoute();
     } catch (error) {
         console.error('Load failed:', error);
-        alert('Failed to load itinerary');
+        alert('Thất bại khi tải hành trình');
     }
 }
 
@@ -483,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearBtn = document.getElementById('clear-itinerary');
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
-            if (confirm('Clear all locations from your route?')) {
+            if (confirm('Xóa mọi địa điểm khỏi hành trình?')) {
                 itinerary.clear();
                 renderItineraryList();
                 itinerary.polylines.forEach(p => map.removeLayer(p));

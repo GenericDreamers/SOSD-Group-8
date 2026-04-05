@@ -142,7 +142,7 @@ async function loadProfile(){
     document.getElementById('gender').value = profile.Gender || 'Other';
     if(profile.Role){
       const roleEl = document.getElementById('profile-role');
-      const isAdmin = profile.Role === 'admin';
+      const isAdmin = profile.Role === 'Admin';
       roleEl.innerHTML = `<span class="profile-role-badge${isAdmin?' admin':''}">${isAdmin ? 'Quản trị viên' : 'Người dùng'}</span>`;
     }
   } catch(e) { console.error(e); }

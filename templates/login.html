@@ -1,51 +1,144 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập — Smart Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles_index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style_login.css') }}">
 </head>
 <body>
-    <h1>Login</h1>
-    <form id="login-form">
-        <label for="email">Email:</label><br>
-        <input type="email" id="email" name="email" required><br>
-        <label for="password">Password:</label><br>
-        <input type="password" id="password" name="password" required><br><br>
-        <input type="submit" value="Login">
-    </form>
-    {% if msg %}
-        <p>{{ msg }}</p>
-    {% endif %}
-</body>
+
+<nav aria-label="Điều hướng chính">
+  <a href="/" class="nav-logo">Smart<span>Travel</span></a>
+  <ul class="nav-links">
+    <li><a href="/map/">Bản đồ</a></li>
+    <li><a href="/booking/">Đặt chỗ</a></li>
+    <li><a href="/itinerary/">Lịch trình</a></li>
+    <li><a href="/payment/">Thanh toán</a></li>
+  </ul>
+  <div class="nav-auth">
+    <a href="/auth/login" class="nav-login" aria-current="page">Đăng nhập</a>
+    <a href="/auth/register" class="nav-cta">Đăng ký ngay</a>
+  </div>
+</nav>
+
+<main class="login-main" id="main-content">
+  <div class="login-layout">
+    <header class="login-intro">
+      <p class="login-tag">Tài khoản SmartTravel</p>
+      <h1>Chào mừng <em>trở lại</em></h1>
+      <p class="login-lead">Đăng nhập để tiếp tục lịch trình, bản đồ và đặt chỗ của bạn — cùng trải nghiệm du lịch thông minh.</p>
+      <a href="/" class="login-back">Về trang chủ</a>
+    </header>
+
+    <div class="login-aside">
+      <section class="login-card" aria-labelledby="login-card-heading">
+        <h2 id="login-card-heading" class="login-card-title">Đăng nhập</h2>
+        <p class="login-card-sub">Nhập email và mật khẩu để truy cập tài khoản.</p>
+
+        {% if msg %}
+        <p class="login-alert" role="alert">{{ msg }}</p>
+        {% endif %}
+
+        <div id="login-alert" class="login-alert" role="alert" style="display:none"></div>
+
+        <form id="login-form" class="login-form" method="post" action="#" novalidate>
+          <div class="login-field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com">
+          </div>
+          <div class="login-field">
+            <label for="password">Mật khẩu</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="••••••••">
+          </div>
+          <div class="login-row">
+            <label class="login-remember">
+              <input type="checkbox" name="remember" value="1">
+              Ghi nhớ đăng nhập
+            </label>
+            <a href="#" class="login-forgot">Quên mật khẩu?</a>
+          </div>
+          <button type="submit" class="login-submit" id="login-btn">Đăng nhập</button>
+        </form>
+
+        <p class="login-footer-actions">Chưa có tài khoản? <a href="/auth/register">Đăng ký miễn phí</a></p>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">Smart<span>Travel</span></div>
+      <div class="footer-tagline">Hệ thống du lịch thông minh. Khám phá Việt Nam theo cách của bạn.</div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tính năng</div>
+      <ul>
+        <li><a href="/map/">Bản đồ tương tác</a></li>
+        <li><a href="/itinerary/">Lịch trình</a></li>
+        <li><a href="/booking/">Đặt chỗ</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tài khoản</div>
+      <ul>
+        <li><a href="/auth/register">Đăng ký miễn phí</a></li>
+        <li><a href="/auth/login">Đăng nhập</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Dự án</div>
+      <ul>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">Nhóm 8 · SOSD</span></li>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">ĐHBK Hà Nội</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 SmartTravel — Nhóm 8 · SOSD · Đại học Bách Khoa Hà Nội</p>
+    <p style="font-size:12px;color:rgba(253,250,245,0.25)">Flask · Python · JWT</p>
+  </div>
+</footer>
+
 <script>
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    
-    try {
-        const response = await fetch('./api/login', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.access_token) {
-            // Store tokens in localStorage
-            localStorage.setItem('access_token', data.access_token);
-            localStorage.setItem('refresh_token', data.refresh_token);
-            
-            // Redirect to map
-            window.location.href = '/map';
-        } else {
-            alert(data.msg || 'Login failed');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        alert('Login error');
+document.getElementById('login-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const alertEl = document.getElementById('login-alert');
+  btn.textContent = 'Đang đăng nhập...';
+  btn.disabled = true;
+  alertEl.style.display = 'none';
+
+  var form = e.target;
+  var formData = new FormData(form);
+  try {
+    var response = await fetch('{{ url_for("auth.login") }}', {
+      method: 'POST',
+      body: formData
+    });
+    var data = await response.json();
+    if (response.ok && data.access_token) {
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      window.location.href = '/';
+    } else {
+      alertEl.textContent = data.msg || 'Email hoặc mật khẩu không đúng.';
+      alertEl.style.display = 'block';
+      btn.textContent = 'Đăng nhập';
+      btn.disabled = false;
     }
+  } catch (err) {
+    alertEl.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+    alertEl.style.display = 'block';
+    btn.textContent = 'Đăng nhập';
+    btn.disabled = false;
+  }
 });
 </script>
+</body>
 </html>

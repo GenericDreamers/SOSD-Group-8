@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Smart Travel{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles_pages.css') }}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<nav class="top-nav">
+  <a href="/" class="nav-logo">Smart<span>Travel</span></a>
+  <ul class="nav-links">
+    <li><a href="/map/" {% if active_page == 'map' %}class="active"{% endif %}>Bản đồ</a></li>
+    <li><a href="/booking/" {% if active_page == 'booking' %}class="active"{% endif %}>Đặt chỗ</a></li>
+    <li><a href="/itinerary/" {% if active_page == 'itinerary' %}class="active"{% endif %}>Lịch trình</a></li>
+    <li><a href="/user/profile" {% if active_page == 'profile' %}class="active"{% endif %}>Tài khoản</a></li>
+  </ul>
+  <div class="nav-auth" id="nav-auth-inner"></div>
+</nav>
+
+<div class="page-container">
+  {% block content %}{% endblock %}
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand-col">
+      <div class="footer-brand">Smart<span>Travel</span></div>
+      <p class="footer-tagline">Hệ thống du lịch thông minh. Khám phá Việt Nam theo cách của bạn với công nghệ hiện đại.</p>
+      <div class="footer-tech-badges">
+        <span class="tech-badge">Flask</span>
+        <span class="tech-badge">JWT</span>
+        <span class="tech-badge">REST API</span>
+        <span class="tech-badge">SQLite</span>
+      </div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tính năng</div>
+      <ul>
+        <li><a href="/map/">Bản đồ tương tác</a></li>
+        <li><a href="/itinerary/">Lịch trình</a></li>
+        <li><a href="/booking/">Đặt chỗ</a></li>
+        <li><a href="/payment/">Thanh toán</a></li>
+        <li><a href="/user/profile">Tài khoản</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tài khoản</div>
+      <ul>
+        <li><a href="/auth/login">Đăng nhập</a></li>
+        <li><a href="/auth/register">Đăng ký miễn phí</a></li>
+        <li><a href="/user/profile">Hồ sơ cá nhân</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Liên hệ</div>
+      <ul>
+        <li><a href="mailto:smarttravel@group8.edu.vn">smarttravel@group8.edu.vn</a></li>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">Nhóm 8 · SOSD</span></li>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">NEU</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 SmartTravel — Nhóm 8 · SOSD · NEU</p>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='notificationCenter.js') }}"></script>
+<script>
+(function () {
+  const token = localStorage.getItem('access_token');
+  const el = document.getElementById('nav-auth-inner');
+
+  function isValid(t) {
+    if (!t) return false;
+    try { return JSON.parse(atob(t.split('.')[1])).exp * 1000 > Date.now(); } catch { return false; }
+  }
+  function initial(t) {
+    try { const p = JSON.parse(atob(t.split('.')[1])); return (p.username || p.email || 'U').charAt(0).toUpperCase(); } catch { return 'U'; }
+  }
+
+  window.isValidToken = isValid;
+  window.getToken = () => localStorage.getItem('access_token');
+  window.doLogout = function () {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    window.location.href = '/';
+  };
+
+  if (token && isValid(token)) {
+    el.innerHTML = `
+      <div class="nav-bell-wrap">
+        <button class="nav-bell" id="nav-bell-btn" aria-label="Thông báo">🔔<span class="nav-bell-count" id="nav-bell-count">0</span></button>
+        <div class="nav-notify-dropdown" id="nav-notify-dropdown">
+          <div class="nav-notify-head">
+            <span>Thông báo</span>
+            <button type="button" id="mark-read-btn">Đánh dấu đã đọc</button>
+          </div>
+          <div class="nav-notify-list" id="nav-notify-list"></div>
+        </div>
+      </div>
+      <div class="nav-user">
+        <div class="nav-avatar">${initial(token)}</div>
+        <div class="nav-user-dropdown">
+          <a href="/user/profile">Hồ sơ</a>
+          <a href="/itinerary/">Lịch trình</a>
+          <a href="/booking/">Đặt chỗ</a>
+          <a href="#" onclick="doLogout();return false;" class="nav-logout-item">Đăng xuất</a>
+        </div>
+      </div>`;
+
+    const bellBtn = document.getElementById('nav-bell-btn');
+    const bellCount = document.getElementById('nav-bell-count');
+    const notifyDropdown = document.getElementById('nav-notify-dropdown');
+    const notifyList = document.getElementById('nav-notify-list');
+    const markReadBtn = document.getElementById('mark-read-btn');
+
+    function esc(v) {
+      return String(v || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function iconForType(type) {
+      if (type === 'payment') return { cls: 'type-payment', icon: '💳' };
+      if (type === 'booking') return { cls: 'type-booking', icon: '📅' };
+      if (type === 'itinerary') return { cls: 'type-itinerary', icon: '🧭' };
+      return { cls: 'type-info', icon: '🔔' };
+    }
+
+    function renderNotifications() {
+      const list = (window.SmartNotify && window.SmartNotify.getAll) ? window.SmartNotify.getAll() : [];
+      const unread = (window.SmartNotify && window.SmartNotify.unreadCount) ? window.SmartNotify.unreadCount() : 0;
+      bellCount.style.display = unread > 0 ? 'inline-flex' : 'none';
+      bellCount.textContent = unread > 9 ? '9+' : String(unread);
+
+      if (!list.length) {
+        notifyList.innerHTML = '<div class="notify-empty">Chưa có thông báo nào</div>';
+        return;
+      }
+
+      notifyList.innerHTML = list.map(n => {
+        const dot = n.read ? '' : '<span class="notify-dot"></span>';
+        const time = new Date(n.createdAt).toLocaleString('vi-VN');
+        const icon = iconForType(n.type);
+        return `
+          <div class="notify-item ${n.read ? '' : 'unread'}">
+            <div class="notify-title-row">${dot}<span class="notify-type-icon ${icon.cls}">${icon.icon}</span><strong>${esc(n.title)}</strong></div>
+            <p>${esc(n.message || '')}</p>
+            <div class="notify-meta">
+              <time>${time}</time>
+              <button type="button" class="notify-remove" data-id="${esc(n.id)}">Xóa</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    bellBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      notifyDropdown.classList.toggle('open');
+      renderNotifications();
+    });
+
+    markReadBtn.addEventListener('click', function () {
+      if (window.SmartNotify && window.SmartNotify.markAllRead) {
+        window.SmartNotify.markAllRead();
+      }
+      renderNotifications();
+    });
+
+    notifyList.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.notify-remove');
+      if (!btn) return;
+      ev.stopPropagation();
+      if (window.SmartNotify && window.SmartNotify.removeById) {
+        window.SmartNotify.removeById(btn.dataset.id);
+      }
+      renderNotifications();
+    });
+
+    document.addEventListener('click', function (ev) {
+      if (!notifyDropdown.contains(ev.target) && ev.target !== bellBtn) {
+        notifyDropdown.classList.remove('open');
+      }
+    });
+
+    window.addEventListener('smarttravel:notifications-updated', renderNotifications);
+    renderNotifications();
+  } else {
+    el.innerHTML = '<a href="/auth/login" class="btn-login">Đăng nhập</a><a href="/auth/register" class="btn-register">Đăng ký</a>';
+  }
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

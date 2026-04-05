@@ -1,0 +1,215 @@
+.nav-cta[aria-current='page'] {
+  box-shadow: 0 12px 20px rgba(184, 71, 51, 0.35);
+}
+
+.register-main {
+  min-height: 100vh;
+  padding-top: 96px;
+  padding-bottom: 24px;
+}
+
+.register-layout {
+  width: min(1200px, calc(100% - 24px));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.03fr 0.97fr;
+  gap: 16px;
+}
+
+.register-intro {
+  border-radius: 18px;
+  padding: 54px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(123, 168, 142, 0.18), transparent 38%),
+    radial-gradient(circle at 94% 10%, rgba(38, 112, 142, 0.12), transparent 34%),
+    #ffffff;
+  border: 1px solid rgba(15, 45, 58, 0.13);
+  box-shadow: 0 16px 28px rgba(15, 45, 58, 0.1);
+  animation: fadeUp 0.5s ease both;
+}
+
+.register-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(123, 168, 142, 0.12);
+  border: 1px solid rgba(123, 168, 142, 0.32);
+  color: #1f5f42;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.register-tag::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #1f5f42; }
+
+.register-intro h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(36px, 4.2vw, 54px);
+  line-height: 1.08;
+  color: #0f2d3a;
+  margin-bottom: 14px;
+}
+.register-intro h1 em { color: #d9664f; }
+
+.register-lead {
+  max-width: 560px;
+  color: #4f5860;
+  font-size: 16px;
+  line-height: 1.72;
+  margin-bottom: 22px;
+}
+
+.register-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #164357;
+}
+.register-back::before { content: '<'; }
+
+.register-aside {
+  border-radius: 18px;
+  padding: 24px;
+  background: linear-gradient(145deg, #eaf4f1, #f8efe0);
+  border: 1px solid rgba(15, 45, 58, 0.13);
+  box-shadow: 0 18px 28px rgba(15, 45, 58, 0.08);
+  animation: fadeUp 0.6s ease both;
+}
+
+.register-card {
+  background: #fff;
+  border: 1px solid rgba(15, 45, 58, 0.15);
+  border-radius: 16px;
+  padding: 26px;
+  box-shadow: 0 14px 24px rgba(15, 45, 58, 0.08);
+  max-height: calc(100vh - 162px);
+  overflow-y: auto;
+}
+
+.register-card-title {
+  font-family: 'Playfair Display', serif;
+  color: #0f2d3a;
+  font-size: 30px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.register-card-sub {
+  color: #4f5860;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.register-alert {
+  border-radius: 12px;
+  border: 1px solid #f2b8c0;
+  background: #fbe0e4;
+  color: #8f1e2f;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+}
+
+.register-form { display: grid; gap: 14px; }
+.register-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.register-fieldset + .register-fieldset {
+  border-top: 1px solid rgba(15, 45, 58, 0.12);
+  padding-top: 12px;
+}
+.register-legend {
+  font-family: 'Playfair Display', serif;
+  color: #0f2d3a;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+.register-fieldset-inner { display: grid; gap: 10px; }
+
+.register-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #4f5860;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.register-field input,
+.register-field select {
+  width: 100%;
+  border: 1px solid rgba(15, 45, 58, 0.2);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.register-field select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #4f5860 50%), linear-gradient(135deg, #4f5860 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% - 3px), calc(100% - 11px) calc(50% - 3px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.register-field input:focus,
+.register-field select:focus {
+  border-color: rgba(123, 168, 142, 0.8);
+  box-shadow: 0 0 0 4px rgba(123, 168, 142, 0.16);
+}
+
+.register-inline-error {
+  color: #8f1e2f;
+  background: #fbe0e4;
+  border: 1px solid #f2b8c0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.register-submit {
+  margin-top: 2px;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #26708e, #164357);
+  color: white;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 12px 22px rgba(22, 67, 87, 0.3);
+  transition: transform 0.16s, box-shadow 0.16s;
+}
+.register-submit:hover { transform: translateY(-1px); box-shadow: 0 14px 24px rgba(22, 67, 87, 0.36); }
+
+.register-footer-actions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(15, 45, 58, 0.13);
+  color: #4f5860;
+  font-size: 14px;
+  text-align: center;
+}
+.register-footer-actions a { color: #164357; font-weight: 700; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 980px) {
+  .register-main { padding-top: 84px; }
+  .register-layout { grid-template-columns: 1fr; }
+  .register-intro { padding: 32px 22px; }
+  .register-aside { padding: 16px; }
+  .register-card { padding: 20px; max-height: none; }
+}

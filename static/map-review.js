@@ -47,16 +47,16 @@ function updateAddReviewButton() {
     const btn = document.getElementById('add-review');
     
     if (userReview) {
-        btn.textContent = '✏️ Edit your review';
+        btn.textContent = 'Chỉnh sửa đánh giá';
     } else {
-        btn.textContent = '+ Add review';
+        btn.textContent = 'Thêm đánh giá';
     }
 }
 
 function renderReviews(reviews) {
     const list = document.getElementById('reviews-list');
     if (reviews.length === 0) {
-        list.innerHTML = '<li>No reviews yet.</li>';
+        list.innerHTML = '<li>Chưa có đánh giá nào.</li>';
         return;
     }
     
@@ -73,8 +73,8 @@ function renderReviews(reviews) {
         if (isUserReview && token) {
             reviewHTML += `
                 <div class="review-actions">
-                    <button class="btn-small btn-edit" onclick="addReview()">Edit</button>
-                    <button class="btn-small btn-delete" onclick="deleteReview(${r.ID})">Delete</button>
+                    <button class="btn-small btn-edit" onclick="addReview()">Sửa</button>
+                    <button class="btn-small btn-delete" onclick="deleteReview(${r.ID})">Xóa</button>
                 </div>
             `;
         }
@@ -95,7 +95,7 @@ function updateNav() {
     prevBtn.disabled = currentPage <= 1;
     nextBtn.disabled = end >= totalReviews;
 
-    info.textContent = `${start}-${end} of ${totalReviews}`;
+    info.textContent = `${start}-${end} trên ${totalReviews}`;
 }
 
 document.getElementById('prev-rev').addEventListener('click', () => {
@@ -113,7 +113,7 @@ document.getElementById('add-review').addEventListener('click', function(e) {
 function addReview() {
     const review = userReview; // If user has a review, edit it instead of adding a new one
     if (!currentPlaceId) {
-        alert('No place selected');
+        alert('Chưa chọn địa điểm.');
         return;
     }
     console.log('Adding/editing review for place ID:', currentPlaceId, 'Existing review:', review);
@@ -122,22 +122,26 @@ function addReview() {
     form.innerHTML = `
         <div class="modal-overlay">
             <div class="modal">
-                <h3>${review ? 'Edit' : 'Add'} Review</h3>
-                <p>All fields marked with "*" are required.</p>
-                <label for="review-rating-input">Rating (1-5 stars) *</label><br>
-                <select id="review-rating-input">
-                    <option value="">Select rating</option>
+                                <h3 class="modal-title">${review ? 'Chỉnh sửa đánh giá' : 'Thêm đánh giá'}</h3>
+                                <p class="modal-sub">Tất cả trường đánh dấu * là bắt buộc.</p>
+                                <div class="modal-field">
+                                    <label for="review-rating-input">Đánh giá (1-5 sao) *</label>
+                                    <select id="review-rating-input">
+                                        <option value="">Chọn số sao</option>
                     <option value="1" ${review && review.Stars == 1 ? 'selected' : ''}>1★</option>
                     <option value="2" ${review && review.Stars == 2 ? 'selected' : ''}>2★</option>
                     <option value="3" ${review && review.Stars == 3 ? 'selected' : ''}>3★</option>
                     <option value="4" ${review && review.Stars == 4 ? 'selected' : ''}>4★</option>
                     <option value="5" ${review && review.Stars == 5 ? 'selected' : ''}>5★</option>
-                </select> <br>
-                <label for="review-content-input">Review</label><br>
-                <textarea id="review-content-input" name="review-content-input" rows="4">${review && review.Content != null ? review.Content : ''}</textarea> <br>
+                                    </select>
+                                </div>
+                                <div class="modal-field">
+                                    <label for="review-content-input">Nội dung</label>
+                                    <textarea id="review-content-input" name="review-content-input" rows="4" placeholder="Chia sẻ trải nghiệm của bạn...">${review && review.Content != null ? review.Content : ''}</textarea>
+                                </div>
                 <div class="modal-buttons">
-                    <button id="submit-review">Submit</button>
-                    <button id="cancel-review">Cancel</button>
+                                        <button id="cancel-review" class="btn-secondary">Hủy</button>
+                                        <button id="submit-review" class="btn-primary">${review ? 'Lưu' : 'Gửi'}</button>
                 </div>
             </div>
         </div>
@@ -149,7 +153,7 @@ function addReview() {
         const content = document.getElementById('review-content-input').value.trim();
         
         if (!rating) {
-            alert('Please fill in all required fields');
+            alert('Vui lòng chọn số sao.');
             return;
         }
         if (review) {
@@ -167,7 +171,7 @@ function addReview() {
 
 async function submitReview(placeId, rating, content) {
     if (!token) {
-        alert('You must be logged in to submit a review');
+        alert('Bạn cần đăng nhập để gửi đánh giá.');
         return;
     }
 
@@ -179,21 +183,21 @@ async function submitReview(placeId, rating, content) {
         });
         
         if (response.ok) {
-            alert('Review submitted successfully!');
+            alert('Gửi đánh giá thành công!');
             loadReviews(placeId, 1);
         } else {
             const error = await response.json();
-            alert(`Error: ${error.msg || 'Failed to submit review'}`);
+            alert(`Lỗi: ${error.msg || 'Không thể gửi đánh giá'}`);
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error submitting review.');
+        alert('Có lỗi khi gửi đánh giá.');
     }
 }
 
 async function updateReview(reviewId, rating, content) {
     if (!token) {
-        alert('You must be logged in to update a review');
+        alert('Bạn cần đăng nhập để cập nhật đánh giá.');
         return;
     }
 
@@ -205,25 +209,25 @@ async function updateReview(reviewId, rating, content) {
         });
         
         if (response.ok) {
-            alert('Review updated successfully!');
+            alert('Cập nhật đánh giá thành công!');
             loadReviews(currentPlaceId, currentPage);
         } else {
             const error = await response.json();
-            alert(`Error: ${error.msg || 'Failed to update review'}`);
+            alert(`Lỗi: ${error.msg || 'Không thể cập nhật đánh giá'}`);
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error updating review.');
+        alert('Có lỗi khi cập nhật đánh giá.');
     }
 }
 
 async function deleteReview(reviewId) {
-    if (!confirm('Are you sure you want to delete your review?')) {
+    if (!confirm('Bạn có chắc chắn muốn xóa đánh giá của mình?')) {
         return;
     }
     
     if (!token) {
-        alert('You must be logged in to delete a review');
+        alert('Bạn cần đăng nhập để xóa đánh giá.');
         return;
     }
 
@@ -234,14 +238,14 @@ async function deleteReview(reviewId) {
         });
         
         if (response.ok) {
-            alert('Review deleted successfully!');
+            alert('Xóa đánh giá thành công!');
             loadReviews(currentPlaceId, currentPage);
         } else {
             const error = await response.json();
-            alert(`Error: ${error.msg || 'Failed to delete review'}`);
+            alert(`Lỗi: ${error.msg || 'Không thể xóa đánh giá'}`);
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error deleting review.');
+        alert('Có lỗi khi xóa đánh giá.');
     }
 }

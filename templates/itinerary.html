@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% set active_page = 'itinerary' %}
+
+{% block title %}Lịch trình của tôi — Smart Travel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_itinerary.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-required" id="auth-guard" style="display:none">
+  <div class="empty-icon">🔐</div>
+  <h2>Đăng nhập để tiếp tục</h2>
+  <p>Bạn cần đăng nhập để xem lịch trình.</p>
+  <a href="/auth/login" class="btn-primary">Đăng nhập ngay</a>
+</div>
+
+<div id="main-content">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:8px">
+    <div>
+      <div class="page-title">Lịch trình của tôi</div>
+      <p class="page-subtitle">Quản lý các hành trình đã lưu. Tạo lịch trình mới từ <a href="/map/" style="color:var(--terracotta);font-weight:500">Bản đồ</a>.</p>
+    </div>
+    <a href="/map/" class="btn-primary" style="margin-top:6px;text-decoration:none;flex-shrink:0">＋ Tạo lịch trình mới</a>
+  </div>
+
+  <div id="alert-box"></div>
+
+  <div class="loading-spinner" id="loading">
+    <div class="spinner"></div>
+    <span>Đang tải lịch trình...</span>
+  </div>
+
+  <div id="empty-state" class="empty-state" style="display:none">
+    <div class="empty-icon">🗺️</div>
+    <h2>Chưa có lịch trình nào</h2>
+    <p>Hãy thêm địa điểm vào hành trình từ trang Bản đồ và lưu lại.</p>
+    <a href="/map/" class="btn-primary" style="text-decoration:none;display:inline-block;margin-top:8px">Khám phá Bản đồ</a>
+  </div>
+
+  <div class="it-grid" id="it-grid" style="display:none"></div>
+</div>
+
+<!-- Detail drawer -->
+<div class="it-detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="it-detail-panel" id="detail-panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <div>
+        <div class="it-detail-title" id="detail-title"></div>
+        <div class="it-detail-sub" id="detail-sub"></div>
+      </div>
+      <button class="it-detail-close" onclick="closeDetailPanel()" aria-label="Đóng">✕</button>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<!-- Rename modal -->
+<div class="modal-backdrop" id="rename-modal" onclick="if(event.target===this)closeRenameModal()">
+  <div class="modal-box">
+    <div class="modal-title">Đổi tên lịch trình</div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Tên mới</label>
+      <input type="text" id="rename-input" placeholder="Nhập tên lịch trình..." maxlength="80">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeRenameModal()">Huỷ</button>
+      <button class="btn-primary" onclick="confirmRename()">Lưu</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getTokenNow() { return localStorage.getItem('access_token'); }
+let itineraries = [];
+let renameTarget = null;
+
+function isValid(t){ if(!t) return false; try{ return JSON.parse(atob(t.split('.')[1])).exp*1000>Date.now(); }catch{return false;} }
+function showAlert(msg, type='success'){ const b=document.getElementById('alert-box'); b.innerHTML=`<div class="alert alert-${type}">${msg}</div>`; setTimeout(()=>b.innerHTML='', 4000); }
+function formatDate(s){ if(!s) return ''; const d=new Date(s); if(isNaN(d)) return s; return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function categoryClass(cat){ if(!cat) return 'cat-default'; const c=cat.toLowerCase(); if(c.includes('hotel')||c.includes('khách sạn')) return 'cat-hotel'; if(c.includes('restaurant')||c.includes('nhà hàng')) return 'cat-restaurant'; return 'cat-attraction'; }
+function categoryLabel(cat){ if(!cat) return 'Địa điểm'; return {Hotel:'Khách sạn',Restaurant:'Nhà hàng',Attraction:'Điểm tham quan'}[cat]||cat; }
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const token = getTokenNow();
+if(!isValid(token)){
+  document.getElementById('main-content').style.display='none';
+  document.getElementById('auth-guard').style.display='block';
+} else { loadItineraries(); }
+
+async function loadItineraries(){
+  try{
+    const res = await fetch('/itinerary/api/list', { headers:{ Authorization:'Bearer '+getTokenNow() } });
+    document.getElementById('loading').style.display='none';
+    if(!res.ok) throw new Error('Không thể tải lịch trình.');
+    itineraries = await res.json();
+    renderGrid();
+  } catch(e){
+    document.getElementById('loading').style.display='none';
+    showAlert(e.message, 'error');
+  }
+}
+
+function renderGrid(){
+  const grid = document.getElementById('it-grid');
+  const empty = document.getElementById('empty-state');
+  if(!itineraries.length){ empty.style.display='block'; grid.style.display='none'; return; }
+  empty.style.display='none'; grid.style.display='grid';
+  grid.innerHTML = itineraries.map(it=>`
+    <div class="it-card" id="card-${it.ID}">
+      <div class="it-card-header">
+        <div class="it-card-title">${escHtml(it.Title)}</div>
+        <span class="it-count-badge">${it.ItemCount||0} điểm</span>
+      </div>
+      <div class="it-card-meta"><span>📅 Tạo ngày ${formatDate(it.CreatedAt)}</span></div>
+      <div class="it-card-actions">
+        <button class="it-btn-open" onclick="openDetail(${it.ID},'${escHtml(it.Title).replace(/'/g,"\\'")}','${formatDate(it.CreatedAt)}')">Xem chi tiết</button>
+        <button class="it-btn-rename" onclick="openRenameModal(${it.ID},'${escHtml(it.Title).replace(/'/g,"\\'")}')">Đổi tên</button>
+        <button class="it-btn-delete" onclick="deleteItinerary(${it.ID})">Xoá</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function openDetail(id, title, dateStr){
+  document.getElementById('detail-title').textContent = title;
+  document.getElementById('detail-sub').textContent = dateStr ? `Tạo ngày ${dateStr}` : '';
+  document.getElementById('detail-body').innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Đang tải...</span></div>';
+  document.getElementById('detail-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  try{
+    const res = await fetch(`/itinerary/api/${id}`, { headers:{ Authorization:'Bearer '+token } });
+    if(!res.ok) throw new Error('Không tải được lịch trình.');
+    const data = await res.json();
+    renderDetailBody(data.items||[]);
+  } catch(e){
+    document.getElementById('detail-body').innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+  }
+}
+
+function renderDetailBody(items){
+  if(!items.length){
+    document.getElementById('detail-body').innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--ink-soft);font-size:14px">Lịch trình này chưa có địa điểm nào.<br><br><a href="/map/" style="color:var(--terracotta);font-weight:500">→ Thêm từ Bản đồ</a></div>';
+    return;
+  }
+  document.getElementById('detail-body').innerHTML = items.map((item,i)=>`
+    <div class="it-stop">
+      <div class="it-stop-num">${item.sequence!=null ? item.sequence : i+1}</div>
+      <div class="it-stop-body">
+        <div class="it-stop-name">${escHtml(item.placeName||'Địa điểm #'+item.placeId)}</div>
+        <span class="it-stop-cat ${categoryClass(item.category)}">${categoryLabel(item.category)}</span>
+        ${item.notes ? `<div class="it-stop-notes">${escHtml(item.notes)}</div>` : ''}
+        ${(item.lat && item.lng) ? `<a class="map-link" href="/map/?lat=${item.lat}&lng=${item.lng}" target="_blank">📍 Xem trên bản đồ</a>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function closeDetail(e){ if(e.target===document.getElementById('detail-overlay')) closeDetailPanel(); }
+function closeDetailPanel(){ document.getElementById('detail-overlay').classList.remove('open'); document.body.style.overflow=''; }
+document.addEventListener('keydown', e => { if(e.key==='Escape'){ closeDetailPanel(); closeRenameModal(); } });
+
+function openRenameModal(id, title){
+  renameTarget = id;
+  document.getElementById('rename-input').value = title;
+  document.getElementById('rename-modal').classList.add('open');
+  setTimeout(() => document.getElementById('rename-input').focus(), 50);
+}
+function closeRenameModal(){ document.getElementById('rename-modal').classList.remove('open'); renameTarget = null; }
+
+async function confirmRename(){
+  const newTitle = document.getElementById('rename-input').value.trim();
+  if(!newTitle){ showAlert('Tên không được để trống.', 'error'); return; }
+  try{
+    const res = await fetch(`/itinerary/api/${renameTarget}`, {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', Authorization:'Bearer '+getTokenNow() },
+      body: JSON.stringify({ title: newTitle })
+    });
+    if(!res.ok) throw new Error('Không thể đổi tên.');
+    itineraries = itineraries.map(it => it.ID===renameTarget ? {...it, Title:newTitle} : it);
+    renderGrid(); closeRenameModal(); showAlert('Đã đổi tên lịch trình.');
+  } catch(e){ showAlert(e.message, 'error'); }
+}
+document.getElementById('rename-input').addEventListener('keydown', e => {
+  if(e.key==='Enter') confirmRename();
+  if(e.key==='Escape') closeRenameModal();
+});
+
+async function deleteItinerary(id){
+  const it = itineraries.find(x => x.ID===id);
+  if(!confirm(`Xoá lịch trình "${it?.Title||id}"?\nThao tác này không thể hoàn tác.`)) return;
+  try{
+    const res = await fetch(`/itinerary/api/${id}`, { method:'DELETE', headers:{ Authorization:'Bearer '+getTokenNow() } });
+    if(!res.ok) throw new Error('Không thể xoá lịch trình.');
+    itineraries = itineraries.filter(x => x.ID!==id);
+    renderGrid(); showAlert('Đã xoá lịch trình.');
+  } catch(e){ showAlert(e.message, 'error'); }
+}
+</script>
+{% endblock %}

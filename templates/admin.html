@@ -1,11 +1,422 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Smart Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles_pages.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style_admin.css') }}">
 </head>
 <body>
-    <!-- Admins can confirm a location in their dashboard -->
+
+<!-- Access denied screen (shown if not admin) -->
+<div class="access-denied" id="access-denied" style="display:none">
+  <div style="font-size:48px;margin-bottom:16px">🔒</div>
+  <h1>Truy cập bị từ chối</h1>
+  <p>Trang này chỉ dành cho quản trị viên. Vui lòng đăng nhập bằng tài khoản Admin.</p>
+  <a href="/auth/login" class="btn-primary" style="text-decoration:none">Đăng nhập</a>
+</div>
+
+<!-- Admin layout -->
+<div class="admin-layout" id="admin-layout" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <a href="/"><span>Smart</span>Travel</a>
+      <div style="font-size:11px;color:rgba(253,250,245,0.35);margin-top:4px;font-weight:500">Admin Panel</div>
+    </div>
+
+    <div class="sidebar-label">Tổng quan</div>
+    <ul class="sidebar-nav">
+      <li><a href="#section-overview" class="active" onclick="scrollTo('section-overview',this)"><span class="nav-icon">📊</span> Dashboard</a></li>
+    </ul>
+
+    <div class="sidebar-label">Quản lý</div>
+    <ul class="sidebar-nav">
+      <li><a href="#section-users" onclick="scrollTo('section-users',this)"><span class="nav-icon">👥</span> Người dùng</a></li>
+      <li><a href="#section-places" onclick="scrollTo('section-places',this)"><span class="nav-icon">📍</span> Địa điểm chờ duyệt</a></li>
+      <li><a href="#section-top" onclick="scrollTo('section-top',this)"><span class="nav-icon">⭐</span> Top địa điểm</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <a href="/" onclick="doLogout();return false;">← Đăng xuất</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div class="admin-topbar-title" id="topbar-title">Dashboard</div>
+      <div class="admin-user-pill">
+        <div class="admin-avatar" id="admin-avatar">A</div>
+        <span id="admin-email" style="font-size:12px">Admin</span>
+      </div>
+    </div>
+
+    <div class="admin-body">
+      <div id="flash-box"></div>
+
+      <!-- Section: Overview -->
+      <div id="section-overview">
+        <div class="section-heading">Tổng quan hệ thống</div>
+        <p class="section-sub">Thống kê nhanh 30 ngày gần nhất.</p>
+
+        <div class="stats-row" id="stats-row">
+          <div class="stat-card stat-card-accent">
+            <div class="stat-card-label">Tổng người dùng</div>
+            <div class="stat-card-value" id="stat-users">—</div>
+            <div class="stat-card-sub">Tài khoản đã đăng ký</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Bookings (30 ngày)</div>
+            <div class="stat-card-value" id="stat-bookings">—</div>
+            <div class="stat-card-sub">Tổng lượt đặt chỗ</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Địa điểm top</div>
+            <div class="stat-card-value" id="stat-places">—</div>
+            <div class="stat-card-sub">Có đánh giá</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-label">Chờ duyệt</div>
+            <div class="stat-card-value" id="stat-pending" style="color:var(--gold)">—</div>
+            <div class="stat-card-sub">Địa điểm mới gửi lên</div>
+          </div>
+        </div>
+
+        <!-- Bookings chart -->
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Lượt đặt chỗ theo ngày</div>
+                <div class="panel-sub">30 ngày gần nhất</div>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="chart-wrap">
+                <div class="panel-loading" id="chart-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+                <canvas id="bookings-chart" style="display:none"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Top 5 địa điểm</div>
+                <div class="panel-sub">Đánh giá cao nhất</div>
+              </div>
+            </div>
+            <div class="panel-body" id="top-places-mini">
+              <div class="panel-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Users -->
+      <div id="section-users" style="margin-top:8px">
+        <div class="section-heading">Danh sách người dùng</div>
+        <p class="section-sub">Tất cả tài khoản trong hệ thống.</p>
+        <div class="panel">
+          <div class="panel-body" style="padding:0">
+            <div class="panel-loading" id="users-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+            <div id="users-table-wrap" style="display:none;overflow-x:auto">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="padding-left:20px">ID</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Pending places -->
+      <div id="section-places" style="margin-top:28px">
+        <div class="section-heading">Địa điểm chờ duyệt</div>
+        <p class="section-sub">Địa điểm do người dùng gửi lên, cần Admin xác nhận trước khi hiển thị trên bản đồ.</p>
+        <div class="panel">
+          <div class="panel-body" id="pending-body">
+            <div class="panel-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Top places full -->
+      <div id="section-top" style="margin-top:28px">
+        <div class="section-heading">Top địa điểm được đánh giá cao</div>
+        <p class="section-sub">Xếp hạng theo điểm trung bình từ đánh giá người dùng.</p>
+        <div class="panel">
+          <div class="panel-body" style="padding:0">
+            <div class="panel-loading" id="top-loading"><div class="spinner"></div><span>Đang tải...</span></div>
+            <div id="top-table-wrap" style="display:none;overflow-x:auto">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th style="padding-left:20px">#</th>
+                    <th>Tên địa điểm</th>
+                    <th>Điểm TB</th>
+                    <th>Số đánh giá</th>
+                  </tr>
+                </thead>
+                <tbody id="top-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const token = localStorage.getItem('access_token');
+
+/* ── Auth helpers ── */
+function parseJwt(t) {
+  try { return JSON.parse(atob(t.split('.')[1])); } catch { return null; }
+}
+function isValid(t) {
+  if (!t) return false;
+  const p = parseJwt(t);
+  return p && p.exp * 1000 > Date.now();
+}
+function doLogout() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  window.location.href = '/';
+}
+function flash(msg, type = 'ok') {
+  const b = document.getElementById('flash-box');
+  b.innerHTML = `<div class="flash flash-${type}">${msg}</div>`;
+  setTimeout(() => b.innerHTML = '', 4000);
+}
+
+/* ── Check role ── */
+const payload = parseJwt(token);
+if (!isValid(token) || payload?.role !== 'Admin') {
+  document.getElementById('access-denied').style.display = 'flex';
+} else {
+  document.getElementById('admin-layout').style.display = 'flex';
+  document.getElementById('admin-avatar').textContent = (payload.email || 'A').charAt(0).toUpperCase();
+  document.getElementById('admin-email').textContent = payload.email || 'Admin';
+  initDashboard();
+}
+
+/* ── Sidebar scroll ── */
+function scrollTo(id, el) {
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+  const titles = { 'section-overview': 'Dashboard', 'section-users': 'Người dùng', 'section-places': 'Địa điểm chờ duyệt', 'section-top': 'Top địa điểm' };
+  document.getElementById('topbar-title').textContent = titles[id] || 'Dashboard';
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ── Fetch with auth ── */
+async function apiFetch(url) {
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  if (!res.ok) throw new Error(`API ${url} lỗi ${res.status}`);
+  return res.json();
+}
+
+/* ── Init ── */
+async function initDashboard() {
+  await Promise.all([loadUsers(), loadBookings(), loadTopPlaces(), loadPending()]);
+}
+
+/* ── Users ── */
+async function loadUsers() {
+  try {
+    const users = await apiFetch('/analytics/api/list-users');
+    document.getElementById('stat-users').textContent = users.length;
+    document.getElementById('users-loading').style.display = 'none';
+    document.getElementById('users-table-wrap').style.display = 'block';
+    document.getElementById('users-tbody').innerHTML = users.map(u => `
+      <tr>
+        <td style="padding-left:20px;color:var(--ink-soft)">${u.ID}</td>
+        <td>${escHtml(u.Email)}</td>
+        <td><span class="role-badge ${u.Role === 'Admin' ? 'role-admin' : 'role-user'}">${u.Role}</span></td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    document.getElementById('users-loading').innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
+  }
+}
+
+/* ── Bookings chart ── */
+async function loadBookings() {
+  try {
+    const data = await apiFetch('/analytics/api/bookings/daily');
+    const total = data.reduce((s, d) => s + d.bookings, 0);
+    document.getElementById('stat-bookings').textContent = total;
+
+    document.getElementById('chart-loading').style.display = 'none';
+    const canvas = document.getElementById('bookings-chart');
+    canvas.style.display = 'block';
+
+    const labels = data.map(d => {
+      const dt = new Date(d.date);
+      return `${dt.getDate()}/${dt.getMonth()+1}`;
+    });
+    const values = data.map(d => d.bookings);
+
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Bookings',
+          data: values,
+          backgroundColor: 'rgba(196,83,58,0.75)',
+          borderRadius: 4,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'DM Sans', size: 11 }, color: '#4A4440', maxTicksLimit: 10 }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { font: { family: 'DM Sans', size: 11 }, color: '#4A4440', stepSize: 1 },
+            grid: { color: 'rgba(26,22,18,0.05)' }
+          }
+        }
+      }
+    });
+  } catch(e) {
+    document.getElementById('chart-loading').innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
+  }
+}
+
+/* ── Top places ── */
+async function loadTopPlaces() {
+  try {
+    const data = await apiFetch('/analytics/api/places/top');
+    document.getElementById('stat-places').textContent = data.length;
+
+    // Mini (top 5 in right panel)
+    const miniEl = document.getElementById('top-places-mini');
+    miniEl.innerHTML = data.slice(0, 5).map(p => `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div style="font-size:13px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">${escHtml(p.name)}</div>
+        </div>
+        <div class="stars-bar-wrap">
+          <div class="stars-bar-track"><div class="stars-bar-fill" style="width:${(p.average_rating/5)*100}%"></div></div>
+          <span class="stars-val">${p.average_rating}</span>
+          <span style="font-size:11px;color:var(--ink-soft)">(${p.review_count})</span>
+        </div>
+      </div>
+    `).join('');
+
+    // Full table
+    document.getElementById('top-loading').style.display = 'none';
+    document.getElementById('top-table-wrap').style.display = 'block';
+    document.getElementById('top-tbody').innerHTML = data.map((p, i) => `
+      <tr>
+        <td style="padding-left:20px;font-weight:500;color:var(--ink-soft)">${i+1}</td>
+        <td style="font-weight:500">${escHtml(p.name)}</td>
+        <td>
+          <div class="stars-bar-wrap">
+            <div class="stars-bar-track" style="width:80px"><div class="stars-bar-fill" style="width:${(p.average_rating/5)*100}%"></div></div>
+            <span class="stars-val">${p.average_rating}</span>
+          </div>
+        </td>
+        <td style="color:var(--ink-soft)">${p.review_count} đánh giá</td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    document.getElementById('top-loading').innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
+    document.getElementById('top-places-mini').innerHTML = `<span style="font-size:13px;color:var(--red)">${e.message}</span>`;
+  }
+}
+
+/* ── Pending places ── */
+async function loadPending() {
+  const el = document.getElementById('pending-body');
+  try {
+    const all = await apiFetch('/map/api/places');
+    const pending = all.filter(p => p.confirmed === '0');
+    document.getElementById('stat-pending').textContent = pending.length;
+
+    if (!pending.length) {
+      el.innerHTML = '<div style="text-align:center;padding:36px 0;color:var(--ink-soft);font-size:14px">✅ Không có địa điểm nào đang chờ duyệt.</div>';
+      return;
+    }
+    el.innerHTML = pending.map(p => `
+      <div class="pending-row" id="pending-${p.id}">
+        <div class="pending-dot"></div>
+        <div class="pending-info">
+          <div class="pending-name">${escHtml(p.name)}</div>
+          <div class="pending-meta">${escHtml(p.category)} · ${p.lat}, ${p.lng} · Giá: ${p.price !== '?' ? p.price + '₫' : 'Chưa có'}</div>
+        </div>
+        <div style="display:flex;flex-shrink:0;gap:6px">
+          <button class="btn-confirm" onclick="confirmPlace(${p.id})">Duyệt</button>
+          <button class="btn-reject" onclick="rejectPlace(${p.id}, '${escHtml(p.name).replace(/'/g,"\\'")}')">Từ chối</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="panel-loading"><span style="color:var(--red)">${e.message}</span></div>`;
+  }
+}
+
+async function confirmPlace(id) {
+  try {
+    /* Cập nhật Confirmed=1 qua PUT /map/api/places/<id> — nếu backend chưa có route này,
+       đây là PATCH tối giản; bạn cần thêm route vào maps/__init__.py (xem ghi chú bên dưới) */
+    const res = await fetch(`/map/api/places/${id}/confirm`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (!res.ok) throw new Error('Không thể duyệt. Kiểm tra route /map/api/places/<id>/confirm trong backend.');
+    document.getElementById(`pending-${id}`)?.remove();
+    const cur = parseInt(document.getElementById('stat-pending').textContent) || 0;
+    document.getElementById('stat-pending').textContent = Math.max(0, cur - 1);
+    flash('Đã duyệt địa điểm.');
+  } catch(e) {
+    flash(e.message, 'err');
+  }
+}
+
+async function rejectPlace(id, name) {
+  if (!confirm(`Từ chối địa điểm "${name}"? Hành động này sẽ xoá địa điểm.`)) return;
+  try {
+    const res = await fetch(`/map/api/places/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (!res.ok) throw new Error('Không thể từ chối. Kiểm tra route DELETE /map/api/places/<id> trong backend.');
+    document.getElementById(`pending-${id}`)?.remove();
+    const cur = parseInt(document.getElementById('stat-pending').textContent) || 0;
+    document.getElementById('stat-pending').textContent = Math.max(0, cur - 1);
+    flash('Đã từ chối và xoá địa điểm.');
+  } catch(e) {
+    flash(e.message, 'err');
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
 </body>
 </html>

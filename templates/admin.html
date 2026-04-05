@@ -31,14 +31,14 @@
 
     <div class="sidebar-label">Tổng quan</div>
     <ul class="sidebar-nav">
-      <li><a href="#section-overview" class="active" onclick="scrollTo('section-overview',this)"><span class="nav-icon">📊</span> Dashboard</a></li>
+      <li><a href="#section-overview" class="active" onclick="scrollTo('section-overview',this)">Dashboard</a></li>
     </ul>
 
     <div class="sidebar-label">Quản lý</div>
     <ul class="sidebar-nav">
-      <li><a href="#section-users" onclick="scrollTo('section-users',this)"><span class="nav-icon">👥</span> Người dùng</a></li>
-      <li><a href="#section-places" onclick="scrollTo('section-places',this)"><span class="nav-icon">📍</span> Địa điểm chờ duyệt</a></li>
-      <li><a href="#section-top" onclick="scrollTo('section-top',this)"><span class="nav-icon">⭐</span> Top địa điểm</a></li>
+      <li><a href="#section-users" onclick="scrollTo('section-users',this)">Người dùng</a></li>
+      <li><a href="#section-places" onclick="scrollTo('section-places',this)">Địa điểm chờ duyệt</a></li>
+      <li><a href="#section-top" onclick="scrollTo('section-top',this)">Top địa điểm</a></li>
     </ul>
 
     <div class="sidebar-footer">
@@ -50,9 +50,12 @@
   <div class="admin-main">
     <div class="admin-topbar">
       <div class="admin-topbar-title" id="topbar-title">Dashboard</div>
-      <div class="admin-user-pill">
-        <div class="admin-avatar" id="admin-avatar">A</div>
-        <span id="admin-email" style="font-size:12px">Admin</span>
+      <div class="admin-top-actions">
+        <button type="button" class="admin-logout-btn" onclick="doLogout()">Đăng xuất</button>
+        <div class="admin-user-pill">
+          <div class="admin-avatar" id="admin-avatar">A</div>
+          <span id="admin-email" style="font-size:12px">Admin</span>
+        </div>
       </div>
     </div>
 

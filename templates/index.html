@@ -35,6 +35,9 @@
   function getInitial(t) {
     try { const p = JSON.parse(atob(t.split('.')[1])); return (p.username || p.email || 'U').charAt(0).toUpperCase(); } catch { return 'U'; }
   }
+  function getRole(t) {
+    try { return String(JSON.parse(atob(t.split('.')[1])).role || '').toLowerCase(); } catch { return ''; }
+  }
 
   function setHomeMode(isAuth) {
     document.body.classList.toggle('is-auth', !!isAuth);
@@ -69,6 +72,7 @@
     }
 
     if (isTokenValid(token)) {
+      const isAdmin = getRole(token) === 'admin';
       setHomeMode(true);
       navAuth.innerHTML = `
         <div class="nav-bell-wrap">
@@ -85,6 +89,7 @@
           <div class="nav-avatar">${getInitial(token)}</div>
           <div class="nav-user-dropdown">
             <a href="/map/">Bản đồ</a>
+            ${isAdmin ? '<a href="/map/admin">Dashboard quản trị</a>' : ''}
             <a href="/itinerary/">Lịch trình của tôi</a>
             <a href="/booking/">Đặt chỗ</a>
             <a href="/user/profile">Hồ sơ</a>

@@ -85,6 +85,25 @@
   font-weight: 500;
   color: var(--ink);
 }
+.admin-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-logout-btn {
+  border: 1px solid rgba(192,57,43,0.25);
+  background: #fff;
+  color: var(--red);
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-logout-btn:hover {
+  background: #FEE2E2;
+}
 .admin-user-pill {
   display: flex; align-items: center; gap: 8px;
   font-size: 13px; color: var(--ink-soft);

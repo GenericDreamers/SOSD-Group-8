@@ -1,0 +1,71 @@
+.payment-method-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.payment-method-btn {
+  border: 2px solid rgba(26,22,18,0.12);
+  border-radius: 8px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: white;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.payment-method-btn:hover { border-color: var(--terracotta); background: #FDF0EE; color: var(--terracotta); }
+.payment-method-btn.active { border-color: var(--terracotta); background: #FDF0EE; color: var(--terracotta); }
+.payment-method-icon { font-size: 22px; margin-bottom: 6px; }
+
+.price-summary {
+  background: var(--sand);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--ink-soft);
+}
+.price-row.total {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  border-top: 1px solid rgba(26,22,18,0.1);
+  padding-top: 10px;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+.price-total-amount { color: var(--terracotta); font-size: 20px; }
+
+.success-card {
+  text-align: center;
+  padding: 48px 24px;
+}
+.success-icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+  animation: pop .4s ease;
+}
+@keyframes pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.success-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 26px; font-weight: 700;
+  margin-bottom: 10px;
+}
+.success-sub {
+  color: var(--ink-soft);
+  font-size: 15px;
+  margin-bottom: 28px;
+  line-height: 1.6;
+}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% set active_page = 'profile' %}
+
+{% block title %}Tài khoản — Smart Travel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-required" id="auth-guard" style="display:none">
+  <div class="empty-icon">🔐</div>
+  <h2>Đăng nhập để tiếp tục</h2>
+  <p>Bạn cần đăng nhập để xem tài khoản.</p>
+  <a href="/auth/login" class="btn-primary">Đăng nhập ngay</a>
+</div>
+
+<div id="profile-content" style="display:none">
+  <div class="page-title">Tài khoản của tôi</div>
+  <p class="page-subtitle">Quản lý thông tin cá nhân và bảo mật tài khoản.</p>
+  <div id="alert-box"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('info')">Thông tin cá nhân</button>
+    <button class="tab-btn" onclick="switchTab('security')">Bảo mật</button>
+  </div>
+
+  <!-- Tab: Profile info -->
+  <div class="tab-content active" id="tab-info">
+    <div class="card">
+      <div class="profile-hero">
+        <div class="profile-avatar-big" id="big-avatar">?</div>
+        <div class="profile-hero-info">
+          <div class="profile-hero-name" id="profile-name">Đang tải...</div>
+          <div class="profile-hero-email" id="profile-email"></div>
+          <div id="profile-role"></div>
+        </div>
+      </div>
+      <form id="profile-form">
+        <div class="form-group">
+          <label>Tên người dùng</label>
+          <input type="text" id="username" placeholder="Tên của bạn">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ngày sinh</label>
+            <input type="date" id="birthday">
+          </div>
+          <div class="form-group">
+            <label>Giới tính</label>
+            <select id="gender">
+              <option value="Male">Nam</option>
+              <option value="Female">Nữ</option>
+              <option value="Other">Khác</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Lưu thay đổi</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">Đặt chỗ gần đây</div>
+      <div id="recent-bookings">
+        <div style="color:var(--ink-soft);font-size:14px">Đang tải...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Security -->
+  <div class="tab-content" id="tab-security">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:20px">Đổi mật khẩu</div>
+      <form id="password-form">
+        <div class="form-group">
+          <label>Mật khẩu hiện tại</label>
+          <input type="password" id="current-password" required placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label>Mật khẩu mới</label>
+          <input type="password" id="new-password" required minlength="6" placeholder="Tối thiểu 6 ký tự">
+        </div>
+        <div class="form-group">
+          <label>Xác nhận mật khẩu mới</label>
+          <input type="password" id="confirm-password" required placeholder="Nhập lại mật khẩu mới">
+        </div>
+        <button type="submit" class="btn-primary">Cập nhật mật khẩu</button>
+      </form>
+    </div>
+
+    <div class="card danger-zone">
+      <div class="card-title danger-title" style="margin-bottom:8px">Đăng xuất</div>
+      <p style="font-size:14px;color:var(--ink-soft);margin-bottom:16px;line-height:1.6">
+        Đăng xuất khỏi tài khoản trên thiết bị này. Dữ liệu lịch trình và đặt chỗ sẽ được lưu lại.
+      </p>
+      <button class="btn-danger" onclick="doLogout()">Đăng xuất</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getTokenNow() { return localStorage.getItem('access_token'); }
+let currentUserId = null;
+
+function isValid(t){ if(!t) return false; try{ return JSON.parse(atob(t.split('.')[1])).exp*1000>Date.now(); }catch{return false;} }
+function getUserId(t){ try{ return JSON.parse(atob(t.split('.')[1])).sub; }catch{return null;} }
+function showAlert(msg, type='success'){ const b=document.getElementById('alert-box'); b.innerHTML=`<div class="alert alert-${type}">${msg}</div>`; setTimeout(()=>b.innerHTML='',4000); }
+
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['info','security'][i]===name));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+const token = getTokenNow();
+if(isValid(token)){
+  document.getElementById('auth-guard').style.display = 'none';
+  document.getElementById('profile-content').style.display = 'block';
+  currentUserId = getUserId(token);
+  loadProfile();
+  loadRecentBookings();
+} else {
+  document.getElementById('auth-guard').style.display = 'block';
+}
+
+async function loadProfile(){
+  if(!currentUserId) return;
+  try {
+    const res = await fetch(`/user/api/profile/${currentUserId}`, { headers:{ Authorization:'Bearer '+getTokenNow() } });
+    if(!res.ok) return;
+    const data = await res.json();
+    const profile = Array.isArray(data) ? data[0] : data;
+    if(!profile) return;
+    const name = profile.Username || '?';
+    document.getElementById('profile-name').textContent = name;
+    document.getElementById('big-avatar').textContent = name.charAt(0).toUpperCase();
+    if(profile.Email) document.getElementById('profile-email').textContent = profile.Email;
+    document.getElementById('username').value = profile.Username || '';
+    document.getElementById('birthday').value = profile.Birthday || '';
+    document.getElementById('gender').value = profile.Gender || 'Other';
+    if(profile.Role){
+      const roleEl = document.getElementById('profile-role');
+      const isAdmin = profile.Role === 'admin';
+      roleEl.innerHTML = `<span class="profile-role-badge${isAdmin?' admin':''}">${isAdmin ? 'Quản trị viên' : 'Người dùng'}</span>`;
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadRecentBookings(){
+  const res = await fetch('/booking/api/my', { headers:{ Authorization:'Bearer '+getTokenNow() } });
+  const container = document.getElementById('recent-bookings');
+  if(!res.ok){ container.innerHTML='<div style="color:var(--ink-soft);font-size:14px">Không thể tải dữ liệu.</div>'; return; }
+  const data = await res.json();
+  if(!data.length){
+    container.innerHTML='<div style="color:var(--ink-soft);font-size:14px;padding:8px 0">Chưa có đặt chỗ nào. <a href="/booking/" style="color:var(--terracotta);font-weight:500">Đặt chỗ ngay →</a></div>';
+    return;
+  }
+  const statusText = { Pending:'Chờ thanh toán', Paid:'Đã thanh toán', Cancelled:'Đã huỷ' };
+  const statusCls  = { Pending:'badge-pending', Paid:'badge-paid', Cancelled:'badge-cancelled' };
+  container.innerHTML = data.slice(0,4).map(b=>`
+    <div class="booking-row">
+      <div>
+        <div class="booking-row-name">${b.PlaceName||'Địa điểm #'+b.PlaceID}</div>
+        <div class="booking-row-date">${b.CheckIn} → ${b.CheckOut}</div>
+      </div>
+      <span class="badge ${statusCls[b.Status]||'badge-pending'}">${statusText[b.Status]||b.Status}</span>
+    </div>
+  `).join('') + `<div style="margin-top:14px"><a href="/booking/" style="font-size:13px;color:var(--terracotta);font-weight:500">Xem tất cả đặt chỗ →</a></div>`;
+}
+
+document.getElementById('profile-form').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const btn = e.submitter;
+  btn.textContent = 'Đang lưu...'; btn.disabled = true;
+  const res = await fetch(`/user/api/profile/${currentUserId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded', Authorization:'Bearer '+getTokenNow() },
+    body: new URLSearchParams({
+      username: document.getElementById('username').value,
+      birthday: document.getElementById('birthday').value,
+      gender:   document.getElementById('gender').value
+    })
+  });
+  const data = await res.json();
+  btn.textContent = 'Lưu thay đổi'; btn.disabled = false;
+  if(res.ok){ showAlert('Đã lưu thông tin thành công!'); loadProfile(); }
+  else showAlert(data.msg||'Lỗi cập nhật thông tin.', 'error');
+});
+
+document.getElementById('password-form').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const np = document.getElementById('new-password').value;
+  const cp = document.getElementById('confirm-password').value;
+  if(np !== cp){ showAlert('Mật khẩu mới không khớp.', 'error'); return; }
+  const btn = e.submitter;
+  btn.textContent = 'Đang cập nhật...'; btn.disabled = true;
+  const res = await fetch('/auth/api/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded', Authorization:'Bearer '+getTokenNow() },
+    body: new URLSearchParams({
+      current_password: document.getElementById('current-password').value,
+      new_password: np
+    })
+  });
+  const data = await res.json();
+  btn.textContent = 'Cập nhật mật khẩu'; btn.disabled = false;
+  if(res.ok){ showAlert('Đổi mật khẩu thành công!'); e.target.reset(); }
+  else showAlert(data.msg||'Lỗi đổi mật khẩu.', 'error');
+});
+</script>
+{% endblock %}

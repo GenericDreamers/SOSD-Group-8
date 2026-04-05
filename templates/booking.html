@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% set active_page = 'booking' %}
+
+{% block title %}Đặt chỗ — Smart Travel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_booking.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-required" id="auth-guard">
+  <div class="empty-icon">🔐</div>
+  <h2>Đăng nhập để tiếp tục</h2>
+  <p>Bạn cần đăng nhập để xem và quản lý đặt chỗ.</p>
+  <a href="/auth/login" class="btn-primary">Đăng nhập ngay</a>
+</div>
+
+<div id="booking-content" style="display:none">
+  <div class="page-title">Đặt chỗ của tôi</div>
+  <p class="page-subtitle">Quản lý tất cả đặt phòng, vé tham quan của bạn tại đây.</p>
+
+  <div id="alert-box"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('my-bookings')">Đặt chỗ của tôi</button>
+    <button class="tab-btn" onclick="switchTab('new-booking')">Đặt chỗ mới</button>
+  </div>
+
+  <div class="tab-content active" id="tab-my-bookings">
+    <div id="bookings-list">
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <p>Đang tải danh sách đặt chỗ...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-new-booking">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:20px">Tạo đặt chỗ mới</div>
+      <form id="booking-form">
+        <div class="form-group">
+          <label>Địa điểm</label>
+          <input type="text" id="place-search" placeholder="Nhập tên địa điểm để tìm kiếm..." autocomplete="off">
+          <input type="hidden" id="place-id">
+          <ul id="place-suggestions" style="list-style:none;border:1px solid rgba(26,22,18,.1);border-radius:8px;margin-top:4px;display:none;background:white;z-index:10;position:relative;box-shadow:0 8px 24px rgba(26,22,18,.1)"></ul>
+        </div>
+
+        <div id="booking-mode-banner" class="booking-mode-banner" style="display:none">
+          <span class="booking-mode-title" id="booking-mode-title">Loại đặt chỗ</span>
+          <span id="booking-mode-desc"></span>
+        </div>
+
+        <div id="hotel-fields" class="booking-mode-fields" style="display:none">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ngày nhận phòng</label>
+              <input type="date" id="check-in">
+            </div>
+            <div class="form-group">
+              <label>Ngày trả phòng</label>
+              <input type="date" id="check-out">
+            </div>
+          </div>
+        </div>
+
+        <div id="restaurant-fields" class="booking-mode-fields" style="display:none">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ngày đặt bàn</label>
+              <input type="date" id="reservation-date">
+            </div>
+            <div class="form-group">
+              <label>Giờ đặt bàn</label>
+              <input type="time" id="reservation-time">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Người lớn</label>
+              <input type="number" id="restaurant-adults" min="1" value="2">
+            </div>
+            <div class="form-group">
+              <label>Trẻ em</label>
+              <input type="number" id="restaurant-children" min="0" value="0">
+            </div>
+          </div>
+        </div>
+
+        <div id="ticket-fields" class="booking-mode-fields" style="display:none">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ngày tham quan</label>
+              <input type="date" id="visit-date">
+            </div>
+            <div class="form-group">
+              <label>Người lớn</label>
+              <input type="number" id="ticket-adults" min="1" value="1">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Trẻ em</label>
+              <input type="number" id="ticket-children" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label>&nbsp;</label>
+              <input type="text" value="Vé trẻ em được tính 60% giá người lớn" disabled>
+            </div>
+          </div>
+        </div>
+
+        <div id="booking-price-box" class="booking-price-box" style="display:none">
+          <div class="booking-price-row">
+            <span id="quote-base-label">Giá gốc</span>
+            <span id="quote-base-value">—</span>
+          </div>
+          <div class="booking-price-row">
+            <span id="quote-unit-label">Số lượng</span>
+            <span id="quote-unit-value">—</span>
+          </div>
+          <div class="booking-price-row total">
+            <span>Tổng tạm tính</span>
+            <span id="quote-total">—</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary">Xác nhận đặt chỗ</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getTokenNow() { return localStorage.getItem('access_token'); }
+function isValid(t){ if(!t) return false; try{ return JSON.parse(atob(t.split('.')[1])).exp*1000>Date.now(); }catch{return false;} }
+function showAlert(msg, type='success'){ const b=document.getElementById('alert-box'); b.innerHTML=`<div class="alert alert-${type}">${msg}</div>`; setTimeout(()=>b.innerHTML='',4000); }
+function getURLParam(name){ return new URLSearchParams(window.location.search).get(name); }
+function parsePrice(v){ const n = Number(v); return Number.isFinite(n) && n > 0 ? n : 0; }
+function formatVND(v){ return Number(v||0).toLocaleString('vi-VN') + ' VNĐ'; }
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.classList.toggle('active', ['my-bookings','new-booking'][i]===name); });
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+const CHILD_RATE = 0.6;
+let selectedPlaceMeta = null;
+
+function getBookingMode(category){
+  const c = String(category || '').trim().toLowerCase();
+  if(c === 'hotel' || c === 'khách sạn') return 'hotel';
+  if(c === 'restaurant' || c === 'nhà hàng') return 'restaurant';
+  return 'ticket';
+}
+
+function getBookingModeMeta(mode){
+  if(mode === 'hotel') return { title: 'Đặt phòng khách sạn', desc: 'Chọn ngày nhận/trả phòng. Tổng giá = giá theo đêm x số đêm.' };
+  if(mode === 'restaurant') return { title: 'Đặt bàn nhà hàng', desc: 'Chọn ngày giờ và số người. Tổng giá tạm tính theo suất người lớn/trẻ em.' };
+  return { title: 'Đặt vé tham quan', desc: 'Chọn ngày đi và số vé người lớn/trẻ em.' };
+}
+
+function showModeFields(mode){
+  document.getElementById('hotel-fields').style.display = mode === 'hotel' ? 'block' : 'none';
+  document.getElementById('restaurant-fields').style.display = mode === 'restaurant' ? 'block' : 'none';
+  document.getElementById('ticket-fields').style.display = mode === 'ticket' ? 'block' : 'none';
+}
+
+function updateBookingQuote(){
+  const box = document.getElementById('booking-price-box');
+  if(!selectedPlaceMeta){ box.style.display = 'none'; return; }
+
+  const price = parsePrice(selectedPlaceMeta.price);
+  const mode = getBookingMode(selectedPlaceMeta.category);
+  const baseLabel = document.getElementById('quote-base-label');
+  const baseValue = document.getElementById('quote-base-value');
+  const unitLabel = document.getElementById('quote-unit-label');
+  const unitValue = document.getElementById('quote-unit-value');
+  const totalEl = document.getElementById('quote-total');
+
+  box.style.display = 'block';
+  baseValue.textContent = price > 0 ? formatVND(price) : 'Chưa có';
+
+  let total = 0;
+  if(mode === 'hotel'){
+    baseLabel.textContent = 'Giá gốc / đêm';
+    unitLabel.textContent = 'Số đêm';
+    const checkIn = document.getElementById('check-in').value;
+    const checkOut = document.getElementById('check-out').value;
+    const nights = checkIn && checkOut ? Math.max(1, Math.round((new Date(checkOut)-new Date(checkIn))/(1000*60*60*24))) : 1;
+    unitValue.textContent = nights + ' đêm';
+    total = nights * price;
+  } else if(mode === 'restaurant'){
+    baseLabel.textContent = 'Giá gốc / người lớn';
+    const adults = Math.max(1, parseInt(document.getElementById('restaurant-adults').value || '1', 10));
+    const children = Math.max(0, parseInt(document.getElementById('restaurant-children').value || '0', 10));
+    unitLabel.textContent = 'Số khách';
+    unitValue.textContent = `${adults} người lớn, ${children} trẻ em`;
+    total = (adults * price) + (children * price * CHILD_RATE);
+  } else {
+    baseLabel.textContent = 'Giá gốc / vé người lớn';
+    const adults = Math.max(1, parseInt(document.getElementById('ticket-adults').value || '1', 10));
+    const children = Math.max(0, parseInt(document.getElementById('ticket-children').value || '0', 10));
+    unitLabel.textContent = 'Số vé';
+    unitValue.textContent = `${adults} vé người lớn, ${children} vé trẻ em`;
+    total = (adults * price) + (children * price * CHILD_RATE);
+  }
+
+  totalEl.textContent = total > 0 ? formatVND(Math.round(total)) : 'Chưa có';
+}
+
+async function selectPlaceById(placeId, name){
+  document.getElementById('place-id').value = placeId;
+  document.getElementById('place-search').value = name || '';
+
+  try {
+    const res = await fetch('/map/api/places/' + encodeURIComponent(placeId));
+    if(!res.ok) throw new Error('place fetch failed');
+    const places = await res.json();
+    const p = places && places[0] ? places[0] : null;
+    if(!p) throw new Error('place missing');
+
+    selectedPlaceMeta = {
+      id: p.id || placeId,
+      name: p.name || name || '',
+      category: p.category || '',
+      price: p.price || 0
+    };
+
+    const mode = getBookingMode(selectedPlaceMeta.category);
+    const modeMeta = getBookingModeMeta(mode);
+    document.getElementById('booking-mode-banner').style.display = 'block';
+    document.getElementById('booking-mode-title').textContent = modeMeta.title;
+    document.getElementById('booking-mode-desc').textContent = modeMeta.desc;
+    showModeFields(mode);
+    updateBookingQuote();
+  } catch {
+    selectedPlaceMeta = null;
+    document.getElementById('booking-mode-banner').style.display = 'none';
+    showModeFields('none');
+    updateBookingQuote();
+  }
+}
+
+function setLoginNextTarget(){
+  const loginBtn = document.querySelector('#auth-guard a.btn-primary');
+  if(!loginBtn) return;
+  loginBtn.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+}
+
+async function prefillBookingFromQuery(){
+  const placeId = getURLParam('place_id');
+  const placeName = getURLParam('place_name');
+  if(!placeId) return;
+
+  switchTab('new-booking');
+  await selectPlaceById(placeId, placeName || '');
+}
+
+const statusLabels = { Pending:'badge-pending', Paid:'badge-paid', Cancelled:'badge-cancelled' };
+const statusText   = { Pending:'Chờ thanh toán', Paid:'Đã thanh toán', Cancelled:'Đã huỷ' };
+
+function bookingDateText(booking){
+  const category = String(booking.Category || '').toLowerCase();
+  const isHotel = category === 'hotel' || category === 'khách sạn';
+  const checkIn = booking.CheckIn || '';
+  const checkOut = booking.CheckOut || '';
+  if(isHotel){
+    return `Nhận: <b>${checkIn}</b> &nbsp;→&nbsp; Trả: <b>${checkOut}</b>`;
+  }
+  return `Ngày: <b>${checkIn}</b>`;
+}
+
+if(isValid(getTokenNow())){
+  document.getElementById('auth-guard').style.display='none';
+  document.getElementById('booking-content').style.display='block';
+  loadBookings();
+  prefillBookingFromQuery();
+} else {
+  setLoginNextTarget();
+}
+
+async function loadBookings(){
+  const token = getTokenNow();
+  const res = await fetch('/booking/api/my', { headers:{ Authorization:'Bearer '+token } });
+  const list = document.getElementById('bookings-list');
+  if(!res.ok){ list.innerHTML='<div class="empty-state"><p>Không thể tải dữ liệu. Vui lòng thử lại.</p></div>'; return; }
+  const data = await res.json();
+  if(!data.length){
+    list.innerHTML=`<div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <h2>Chưa có đặt chỗ nào</h2>
+      <p>Hãy tìm và đặt địa điểm yêu thích của bạn.</p>
+      <button class="btn-primary" onclick="switchTab('new-booking')">Đặt chỗ ngay</button>
+    </div>`;
+    return;
+  }
+  list.innerHTML = data.map(b=>`
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${b.PlaceName||'Địa điểm #'+b.PlaceID}</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-top:6px">
+            ${b.Category ? `<span style="background:var(--sand);padding:2px 8px;border-radius:4px;margin-right:8px;font-size:11px">${b.Category}</span>` : ''}
+            ${bookingDateText(b)}
+          </div>
+        </div>
+        <span class="badge ${statusLabels[b.Status]||'badge-pending'}">${statusText[b.Status]||b.Status}</span>
+      </div>
+      ${b.Status==='Pending' ? `<a href="/payment/?booking_id=${b.ID}" class="btn-primary" style="font-size:13px;padding:8px 18px;text-decoration:none;display:inline-block;margin-top:12px">Thanh toán ngay →</a>` : ''}
+    </div>
+  `).join('');
+}
+
+// Place autocomplete
+const placeInput = document.getElementById('place-search');
+const suggestions = document.getElementById('place-suggestions');
+let debounceTimer;
+
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+placeInput.addEventListener('input', function(){
+  document.getElementById('place-id').value = '';
+  selectedPlaceMeta = null;
+  document.getElementById('booking-mode-banner').style.display = 'none';
+  showModeFields('none');
+  updateBookingQuote();
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(async () => {
+    const q = this.value.trim();
+    if(q.length < 2){ suggestions.style.display='none'; return; }
+    const res = await fetch('/search/api/autocomplete?q='+encodeURIComponent(q));
+    const data = await res.json();
+    suggestions.innerHTML = data.slice(0,6).map(p=>`
+      <li class="place-suggestion-item" data-id="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}"
+        style="padding:11px 16px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.05);font-size:14px;transition:background .15s"
+        onmouseenter="this.style.background='#F5EFE0'" onmouseleave="this.style.background=''">
+        ${escapeHtml(p.name)}${p.category ? `<span style="font-size:11px;color:#4A4440;margin-left:8px">${escapeHtml(p.category)}</span>` : ''}
+      </li>`).join('');
+    suggestions.style.display = data.length ? 'block' : 'none';
+  }, 250);
+});
+
+suggestions.addEventListener('mousedown', function(e){
+  const item = e.target.closest('.place-suggestion-item');
+  if(!item) return;
+  e.preventDefault();
+  selectPlaceById(item.dataset.id || '', item.dataset.name || '');
+  suggestions.style.display = 'none';
+});
+
+document.addEventListener('click', e => {
+  if(!placeInput.contains(e.target) && !suggestions.contains(e.target)) suggestions.style.display='none';
+});
+
+function selectPlace(p){ selectPlaceById(p.id, p.name); suggestions.style.display='none'; }
+
+// Set min date
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('check-in').min = today;
+document.getElementById('reservation-date').min = today;
+document.getElementById('visit-date').min = today;
+document.getElementById('check-in').addEventListener('change', function(){
+  document.getElementById('check-out').min = this.value;
+  updateBookingQuote();
+});
+document.getElementById('check-out').addEventListener('change', updateBookingQuote);
+document.getElementById('restaurant-adults').addEventListener('input', updateBookingQuote);
+document.getElementById('restaurant-children').addEventListener('input', updateBookingQuote);
+document.getElementById('ticket-adults').addEventListener('input', updateBookingQuote);
+document.getElementById('ticket-children').addEventListener('input', updateBookingQuote);
+
+document.getElementById('booking-form').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const placeId = document.getElementById('place-id').value;
+  if(!placeId){ showAlert('Vui lòng chọn địa điểm từ gợi ý.', 'error'); return; }
+
+  const mode = getBookingMode(selectedPlaceMeta ? selectedPlaceMeta.category : '');
+  let checkIn = '';
+  let checkOut = '';
+
+  if(mode === 'hotel'){
+    checkIn = document.getElementById('check-in').value;
+    checkOut = document.getElementById('check-out').value;
+    if(!checkIn || !checkOut){ showAlert('Vui lòng chọn đủ ngày nhận/trả phòng.', 'error'); return; }
+    if(checkOut <= checkIn){ showAlert('Ngày trả phòng phải sau ngày nhận phòng.', 'error'); return; }
+  } else if(mode === 'restaurant'){
+    checkIn = document.getElementById('reservation-date').value;
+    checkOut = checkIn;
+    if(!checkIn){ showAlert('Vui lòng chọn ngày đặt bàn.', 'error'); return; }
+    if(!document.getElementById('reservation-time').value){ showAlert('Vui lòng chọn giờ đặt bàn.', 'error'); return; }
+  } else {
+    checkIn = document.getElementById('visit-date').value;
+    checkOut = checkIn;
+    if(!checkIn){ showAlert('Vui lòng chọn ngày tham quan.', 'error'); return; }
+  }
+
+  const price = parsePrice(selectedPlaceMeta ? selectedPlaceMeta.price : 0);
+  if(price <= 0){ showAlert('Địa điểm chưa có giá hợp lệ để đặt chỗ.', 'error'); return; }
+
+  const btn = e.submitter;
+  btn.textContent = 'Đang xử lý...'; btn.disabled = true;
+  const token = getTokenNow();
+  const res = await fetch('/booking/api/create', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', Authorization:'Bearer '+token },
+    body: JSON.stringify({ place_id:parseInt(placeId), check_in:checkIn, check_out:checkOut, mode })
+  });
+  const data = await res.json();
+  btn.textContent = 'Xác nhận đặt chỗ'; btn.disabled = false;
+  if(res.ok){
+    showAlert('Đặt chỗ thành công! Mã đặt chỗ: #'+data.booking_id);
+    if(window.SmartNotify && window.SmartNotify.push){
+      window.SmartNotify.push({
+        type: 'booking',
+        title: 'Đặt chỗ thành công',
+        message: `Mã đặt chỗ #${data.booking_id} đã được tạo.`
+      });
+    }
+    switchTab('my-bookings');
+    loadBookings();
+    e.target.reset();
+    document.getElementById('place-id').value = '';
+    selectedPlaceMeta = null;
+    document.getElementById('booking-mode-banner').style.display = 'none';
+    showModeFields('none');
+    updateBookingQuote();
+  } else {
+    showAlert(data.msg||'Lỗi đặt chỗ. Vui lòng thử lại.', 'error');
+  }
+});
+</script>
+{% endblock %}

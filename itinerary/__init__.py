@@ -1,10 +1,14 @@
 from datetime import datetime
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from db import query_db, execute_db
 from auth import require_ownership_or_admin
 
 itinerary_bp = Blueprint('itinerary', __name__, url_prefix='/itinerary')
+
+@itinerary_bp.route("/", methods=["GET"])
+def itinerary_page():
+    return render_template("itinerary.html")
 
 @itinerary_bp.route("/api/save", methods=["POST"])
 @jwt_required()
@@ -64,7 +68,7 @@ def get_itinerary(it_id):
     if not itinerary:
         return jsonify({"msg": "Itinerary not found"}), 404
     itinerary = sorted(itinerary, key=lambda x: x["OrderNum"])
-    return {
+    return jsonify({
         'items': [
             {
                 'placeId': item["PlaceID"],
@@ -77,7 +81,7 @@ def get_itinerary(it_id):
             }
             for item in itinerary
         ]
-    }
+    })
 
 @itinerary_bp.route("/api/<int:it_id>", methods=["PUT"])
 @jwt_required()

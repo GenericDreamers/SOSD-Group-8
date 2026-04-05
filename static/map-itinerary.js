@@ -238,18 +238,21 @@ function renderItineraryList() {
 
 function toggleItineraryPanel() {
     const panel = document.getElementById('itinerary-panel');
+    const mapRoot = document.getElementById('map');
     if (!panel) return;
     
     itineraryVisible = !itineraryVisible;
     
     if (itineraryVisible) {
         panel.classList.remove('hidden');
+        if (mapRoot) mapRoot.classList.add('itinerary-open');
         renderItineraryList();
         if (itinerary.locations.length > 0) {
             drawRoute();
         }
     } else {
         panel.classList.add('hidden');
+        if (mapRoot) mapRoot.classList.remove('itinerary-open');
         // Clear route visualization
         itinerary.polylines.forEach(p => map.removeLayer(p));
         itinerary.markers.forEach(m => map.removeLayer(m));
@@ -283,6 +286,13 @@ async function saveItinerary() {
         
         if (response.ok) {
             alert(`Itinerary "${name}" saved!`);
+            if (window.SmartNotify && window.SmartNotify.push) {
+                window.SmartNotify.push({
+                    type: 'itinerary',
+                    title: 'Đã lưu lịch trình',
+                    message: `Lịch trình "${name}" đã được lưu thành công.`
+                });
+            }
             itinerary.locations = [];
             renderItineraryList();
         }

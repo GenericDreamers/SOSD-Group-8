@@ -1,0 +1,109 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  color: #1e2124;
+  background: #fff9ef;
+}
+
+.map-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(15, 45, 58, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 18px rgba(15, 45, 58, 0.08);
+}
+.map-nav-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f2d3a;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.map-nav-logo span { color: #d9664f; font-style: italic; }
+
+.map-nav-links {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.map-nav-links a {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f5860;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  padding: 7px 2px;
+  transition: color .2s, border-color .2s;
+}
+.map-nav-links a:hover,
+.map-nav-links a.active {
+  color: #0f2d3a;
+  border-color: rgba(15, 45, 58, 0.3);
+}
+
+.map-nav-auth { display: flex; align-items: center; gap: 8px; }
+.map-user { position: relative; }
+.map-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #164357, #26708e);
+  cursor: pointer;
+}
+.map-dropdown {
+  display: none;
+  position: absolute;
+  top: 42px;
+  right: 0;
+  min-width: 164px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 45, 58, 0.16);
+  background: #fff;
+  box-shadow: 0 18px 30px rgba(15, 45, 58, 0.18);
+  z-index: 9999;
+}
+.map-user:hover .map-dropdown { display: block; }
+.map-dropdown a {
+  display: block;
+  padding: 10px 13px;
+  font-size: 13px;
+  color: #4f5860;
+  text-decoration: none;
+  transition: background .16s, color .16s;
+}
+.map-dropdown a:hover { background: #f7eddc; color: #0f2d3a; }
+.map-dropdown a.logout {
+  color: #b02030;
+  border-top: 1px solid rgba(15, 45, 58, 0.12);
+}
+.map-login-btn {
+  border: 1px solid rgba(15, 45, 58, 0.2);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f2d3a;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+@media (max-width: 980px) {
+  .map-nav-links { display: none; }
+}

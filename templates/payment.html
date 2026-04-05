@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% set active_page = 'payment' %}
+
+{% block title %}Thanh toán — Smart Travel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_payment.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-required" id="auth-guard">
+  <div class="empty-icon">🔐</div>
+  <h2>Đăng nhập để tiếp tục</h2>
+  <p>Bạn cần đăng nhập để thực hiện thanh toán.</p>
+  <a href="/auth/login" class="btn-primary">Đăng nhập ngay</a>
+</div>
+
+<div id="payment-content" style="display:none">
+  <div class="page-title">Thanh toán</div>
+  <p class="page-subtitle">Hoàn tất thanh toán cho đặt chỗ của bạn một cách an toàn và nhanh chóng.</p>
+  <div id="alert-box"></div>
+
+  <!-- Booking info card -->
+  <div id="booking-info" class="card" style="margin-bottom:20px">
+    <div style="color:var(--ink-soft);font-size:14px">Đang tải thông tin đặt chỗ...</div>
+  </div>
+
+  <!-- Payment form -->
+  <div class="card" id="payment-form-card" style="display:none">
+    <div class="card-title" style="margin-bottom:22px">Phương thức thanh toán</div>
+
+    <div class="payment-method-grid">
+      <button class="payment-method-btn active" onclick="selectMethod('card', this)">
+        <div class="payment-method-icon">💳</div>
+        Thẻ tín dụng
+      </button>
+      <button class="payment-method-btn" onclick="selectMethod('vnpay', this)">
+        <div class="payment-method-icon">🏦</div>
+        VNPay
+      </button>
+      <button class="payment-method-btn" onclick="selectMethod('momo', this)">
+        <div class="payment-method-icon">📱</div>
+        Ví MoMo
+      </button>
+    </div>
+
+    <form id="payment-form">
+      <div id="card-fields">
+        <div class="form-group">
+          <label>Số thẻ</label>
+          <input type="text" placeholder="1234 5678 9012 3456" maxlength="19" id="card-number">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ngày hết hạn</label>
+            <input type="text" placeholder="MM/YY" maxlength="5" id="card-expiry">
+          </div>
+          <div class="form-group">
+            <label>CVV</label>
+            <input type="text" placeholder="123" maxlength="3" id="card-cvv">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Tên chủ thẻ</label>
+          <input type="text" placeholder="NGUYEN VAN A" id="card-name">
+        </div>
+      </div>
+
+      <div id="ewallet-fields" style="display:none">
+        <div class="form-group">
+          <label>Số điện thoại liên kết ví</label>
+          <input type="tel" placeholder="0912 345 678" id="wallet-phone">
+        </div>
+      </div>
+
+      <div class="price-summary">
+        <div class="price-row">
+          <span>Giá theo ngày</span>
+          <span id="price-per-night">—</span>
+        </div>
+        <div class="price-row">
+          <span>Số đêm</span>
+          <span id="night-count">—</span>
+        </div>
+        <div class="price-row total">
+          <span>Tổng thanh toán</span>
+          <span class="price-total-amount" id="total-amount">—</span>
+        </div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-top:8px">
+          🔒 Thanh toán được mã hóa và bảo mật tuyệt đối.
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" style="width:100%;justify-content:center;font-size:15px;padding:14px">
+        Xác nhận thanh toán
+      </button>
+    </form>
+  </div>
+
+  <!-- Success state -->
+  <div class="card" id="success-card" style="display:none">
+    <div class="success-card">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Thanh toán thành công!</div>
+      <p class="success-sub">Đặt chỗ của bạn đã được xác nhận.<br>Thông báo xác nhận đã được gửi đến tài khoản.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a href="/booking/" class="btn-primary" style="text-decoration:none">Xem đặt chỗ của tôi</a>
+        <a href="/itinerary/" class="btn-secondary" style="text-decoration:none">Xem lịch trình</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getTokenNow() { return localStorage.getItem('access_token'); }
+let selectedMethod = 'card';
+let currentTotalAmount = 0;
+
+function isValid(t){ if(!t) return false; try{ return JSON.parse(atob(t.split('.')[1])).exp*1000>Date.now(); }catch{return false;} }
+function showAlert(msg, type='success'){ const b=document.getElementById('alert-box'); b.innerHTML=`<div class="alert alert-${type}">${msg}</div>`; setTimeout(()=>b.innerHTML='',5000); }
+
+function selectMethod(method, el){
+  selectedMethod = method;
+  document.querySelectorAll('.payment-method-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('card-fields').style.display = method==='card' ? 'block' : 'none';
+  document.getElementById('ewallet-fields').style.display = (method==='vnpay'||method==='momo') ? 'block' : 'none';
+}
+
+function parseAmount(value){
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0 ? amount : 0;
+}
+
+if(isValid(getTokenNow())){
+  const token = getTokenNow();
+  document.getElementById('auth-guard').style.display='none';
+  document.getElementById('payment-content').style.display='block';
+
+  const params = new URLSearchParams(window.location.search);
+  const bookingId = params.get('booking_id');
+
+  if(bookingId){
+    fetch('/booking/api/my', { headers:{ Authorization:'Bearer '+token } })
+      .then(r=>r.json()).then(data=>{
+        const booking = data.find(b=>b.ID==bookingId);
+        const info = document.getElementById('booking-info');
+        if(booking){
+          const nights = booking.CheckIn && booking.CheckOut
+            ? Math.max(1, Math.round((new Date(booking.CheckOut)-new Date(booking.CheckIn))/(1000*60*60*24))) : 1;
+          const price = parseAmount(booking.PlacePrice);
+          const total = nights * price;
+          currentTotalAmount = total;
+
+          document.getElementById('price-per-night').textContent = price > 0
+            ? price.toLocaleString('vi-VN') + ' VNĐ'
+            : 'Chưa có';
+          document.getElementById('night-count').textContent = nights + ' đêm';
+          document.getElementById('total-amount').textContent = total > 0
+            ? total.toLocaleString('vi-VN') + ' VNĐ'
+            : 'Chưa có';
+
+          info.innerHTML=`
+            <div class="card-header">
+              <div>
+                <div class="card-title">${booking.PlaceName||'Địa điểm #'+booking.PlaceID}</div>
+                <div style="font-size:13px;color:var(--ink-soft);margin-top:8px">
+                  Nhận phòng: <b>${booking.CheckIn}</b> &nbsp;→&nbsp; Trả phòng: <b>${booking.CheckOut}</b><br>
+                  <span style="margin-top:4px;display:inline-block">Mã đặt chỗ: <b>#${booking.ID}</b></span>
+                </div>
+              </div>
+              <span class="badge badge-pending">Chờ thanh toán</span>
+            </div>`;
+          document.getElementById('payment-form-card').style.display='block';
+        } else {
+          info.innerHTML='<div class="alert alert-error">Không tìm thấy đặt chỗ này hoặc đặt chỗ không thuộc về bạn.</div>';
+        }
+      });
+  } else {
+    document.getElementById('booking-info').innerHTML=`
+      <div style="text-align:center;padding:24px 20px">
+        <div style="font-size:36px;margin-bottom:12px">📋</div>
+        <p style="color:var(--ink-soft);margin-bottom:16px">Chọn một đặt chỗ đang chờ thanh toán.</p>
+        <a href="/booking/" class="btn-primary" style="text-decoration:none">Xem đặt chỗ của tôi</a>
+      </div>`;
+  }
+
+  // Card number formatting
+  document.getElementById('card-number').addEventListener('input', function(){
+    this.value = this.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim().substring(0,19);
+  });
+  document.getElementById('card-expiry').addEventListener('input', function(){
+    this.value = this.value.replace(/\D/g,'').replace(/^(\d{2})(\d)/,'$1/$2').substring(0,5);
+  });
+
+  document.getElementById('payment-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if(!bookingId){ showAlert('Không có mã đặt chỗ.', 'error'); return; }
+    if(currentTotalAmount <= 0){ showAlert('Địa điểm chưa có giá hợp lệ để thanh toán.', 'error'); return; }
+    const btn = e.submitter;
+    btn.textContent = 'Đang xử lý...'; btn.disabled = true;
+    const res = await fetch('/payment/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', Authorization:'Bearer '+token },
+      body: JSON.stringify({ booking_id:parseInt(bookingId), amount:currentTotalAmount, method:selectedMethod })
+    });
+    const data = await res.json();
+    if(res.ok){
+      if(window.SmartNotify && window.SmartNotify.push){
+        window.SmartNotify.push({
+          type: 'payment',
+          title: 'Thanh toán thành công',
+          message: `Booking #${bookingId} đã được thanh toán.`
+        });
+      }
+      document.getElementById('payment-form-card').style.display='none';
+      document.getElementById('booking-info').style.display='none';
+      document.getElementById('success-card').style.display='block';
+    } else {
+      showAlert(data.msg||'Lỗi thanh toán. Vui lòng thử lại.', 'error');
+      btn.textContent = 'Xác nhận thanh toán'; btn.disabled = false;
+    }
+  });
+}
+</script>
+{% endblock %}

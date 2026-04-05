@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
-from db import query_db, execute_db
+from db import query_db
 from auth import admin_required
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
@@ -11,7 +11,8 @@ analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 @admin_required
 def admin_list_users():
     users = query_db("SELECT ID, Email, Role FROM Users")
-    return jsonify(users), 200
+    # sqlite3.Row cần chuyển sang dict để jsonify serialize được
+    return jsonify([dict(u) for u in users]), 200
 
 @analytics_bp.route("/api/bookings/daily", methods=["GET"])
 @jwt_required()
@@ -19,54 +20,44 @@ def admin_list_users():
 def bookings_daily():
     end = datetime.now()
     start = end - timedelta(days=30)
-    result = (
-        query_db(
-            """
-            SELECT DATE(created_at) as date, COUNT(id) as count
-            FROM Bookings
-            WHERE created_at BETWEEN ? AND ?
-            GROUP BY DATE(created_at)
-            ORDER BY date
-            """,
-            [start, end]
-        )
+    result = query_db(
+        """
+        SELECT DATE(CreatedAt) as date, COUNT(ID) as count
+        FROM Bookings
+        WHERE CreatedAt BETWEEN ? AND ?
+        GROUP BY DATE(CreatedAt)
+        ORDER BY date
+        """,
+        [start.isoformat(), end.isoformat()]
     )
-    data = [{"date": r.date.isoformat(), "bookings": r.count} for r in result]
-    return jsonify(data)
+    # sqlite3.Row dùng r["date"] chứ không phải r.date
+    data = [{"date": r["date"], "bookings": r["count"]} for r in result]
+    return jsonify(data), 200
 
 @analytics_bp.route("/api/places/top", methods=["GET"])
 @jwt_required()
 @admin_required
 def top_places():
-    # average rating per place
-    subq = (
-        query_db(
-            """
-            SELECT service_id as place_id, AVG(rating) as avg_rating, COUNT(id) as review_cnt
-            FROM Reviews
-            GROUP BY service_id
-            """
-        )
-    )
-    query = (
-        query_db(
-            """
-            SELECT Place.id, Place.name, subq.avg_rating, subq.review_cnt
-            FROM Places Place
-            JOIN ? subq ON Place.id = subq.place_id
-            ORDER BY subq.avg_rating DESC
-            LIMIT 10
-            """,
-            [subq]
-        )
+    # Viết subquery SQL inline thay vì JOIN Python list
+    result = query_db(
+        """
+        SELECT p.ID as place_id, p.Name as name,
+               ROUND(AVG(r.Stars), 2) as avg_rating,
+               COUNT(r.ID) as review_cnt
+        FROM Places p
+        JOIN Reviews r ON p.ID = r.PlaceID
+        GROUP BY p.ID, p.Name
+        ORDER BY avg_rating DESC
+        LIMIT 10
+        """
     )
     data = [
         {
-            "place_id": r.id,
-            "name": r.name,
-            "average_rating": round(r.avg_rating, 2),
-            "review_count": r.review_cnt,
+            "place_id": r["place_id"],
+            "name": r["name"],
+            "average_rating": r["avg_rating"],
+            "review_count": r["review_cnt"],
         }
-        for r in query
+        for r in result
     ]
-    return jsonify(data)
+    return jsonify(data), 200

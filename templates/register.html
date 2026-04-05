@@ -1,41 +1,202 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng ký — Smart Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles_index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style_register.css') }}">
 </head>
 <body>
-    <h1>Register</h1>
-    <form action="/auth/register" method="POST">
-        <fieldset>
-            <legend><b>Account Login Information</b></legend>
-            <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" required><br>
-            <label for="password">Password:</label><br>
-            <input type="password" id="password" name="password" required><br>
-            <label for="confirm-password">Confirm Password:</label><br>
-            <input type="password" id="confirm-password" name="confirm-password" required><br>
-        </fieldset>
 
-        <fieldset>
-            <legend><b>Profile Information</b></legend>
-            <label for="username">Username:</label><br>
-            <input type="text" id="username" name="username" required><br>
-            <label for="birthday">Birthday:</label><br>
-            <input type="date" id="birthday" name="birthday" required><br>
-            <label for="gender">Gender:</label><br>
-            <select name="gender" id="gender" required>
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Other">Other</option>
-            </select>
-        </fieldset>
-        <br>
-        <input type="submit" value="Register">
-    </form>
-    {% if msg %}
-        <p>{{ msg }}</p>
-    {% endif %}
+<nav aria-label="Điều hướng chính">
+  <a href="/" class="nav-logo">Smart<span>Travel</span></a>
+  <ul class="nav-links">
+    <li><a href="/map/">Bản đồ</a></li>
+    <li><a href="/booking/">Đặt chỗ</a></li>
+    <li><a href="/itinerary/">Lịch trình</a></li>
+    <li><a href="/payment/">Thanh toán</a></li>
+  </ul>
+  <div class="nav-auth">
+    <a href="/auth/login" class="nav-login">Đăng nhập</a>
+    <a href="/auth/register" class="nav-cta" aria-current="page">Đăng ký ngay</a>
+  </div>
+</nav>
+
+<main class="register-main" id="main-content">
+  <div class="register-layout">
+    <header class="register-intro">
+      <p class="register-tag">Tham gia SmartTravel</p>
+      <h1>Bắt đầu hành trình <em>của bạn</em></h1>
+      <p class="register-lead">Tạo tài khoản ngay hôm nay để lưu lịch trình, khám phá các danh lam thắng cảnh và tận hưởng dịch vụ đặt chỗ nhanh chóng, tiện lợi.</p>
+      <a href="/" class="register-back">Về trang chủ</a>
+    </header>
+
+    <div class="register-aside">
+      <section class="register-card" aria-labelledby="register-card-heading">
+        <h2 id="register-card-heading" class="register-card-title">Đăng ký tài khoản</h2>
+        <p class="register-card-sub">Điền thông tin bên dưới. Các trường có dấu <span aria-hidden="true">*</span> là bắt buộc.</p>
+
+        {% if msg %}
+        <p class="register-alert" role="alert">{{ msg }}</p>
+        {% endif %}
+
+        <div id="register-alert" class="register-alert" role="alert" style="display:none"></div>
+
+        <form class="register-form" id="register-form" method="post" action="#" novalidate>
+          <fieldset class="register-fieldset">
+            <legend class="register-legend">Thông tin đăng nhập</legend>
+            <div class="register-fieldset-inner">
+              <div class="register-field">
+                <label for="email">Email <abbr title="bắt buộc">:*</abbr></label>
+                <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com" inputmode="email" aria-required="true">
+              </div>
+              <div class="register-field">
+                <label for="password">Mật khẩu <abbr title="bắt buộc">:*</abbr></label>
+                <input type="password" id="password" name="password" autocomplete="new-password" required minlength="6" placeholder="Tối thiểu 6 ký tự" aria-required="true">
+              </div>
+              <div class="register-field">
+                <label for="confirm-password">Xác nhận mật khẩu <abbr title="bắt buộc">:*</abbr></label>
+                <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password" required placeholder="Nhập lại mật khẩu" aria-required="true" aria-describedby="register-password-hint">
+              </div>
+            </div>
+          </fieldset>
+          <p id="register-password-hint" class="register-inline-error" role="alert" hidden>Mật khẩu xác nhận không khớp.</p>
+
+          <fieldset class="register-fieldset">
+            <legend class="register-legend">Hồ sơ cá nhân</legend>
+            <div class="register-fieldset-inner">
+              <div class="register-field">
+                <label for="username">Tên hiển thị <abbr title="bắt buộc">:*</abbr></label>
+                <input type="text" id="username" name="username" autocomplete="username" required placeholder="Tên của bạn" aria-required="true">
+              </div>
+              <div class="register-field">
+                <label for="birthday">Ngày sinh <abbr title="bắt buộc">:*</abbr></label>
+                <input type="date" id="birthday" name="birthday" autocomplete="bday" required aria-required="true">
+              </div>
+              <div class="register-field">
+                <label for="gender">Giới tính <abbr title="bắt buộc">:*</abbr></label>
+                <select id="gender" name="gender" required aria-required="true">
+                  <option value="" disabled selected hidden>Chọn giới tính</option>
+                  <option value="Female">Nữ</option>
+                  <option value="Male">Nam</option>
+                  <option value="Other">Khác</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="register-submit" id="register-btn">Tạo tài khoản</button>
+        </form>
+
+        <p class="register-footer-actions">Đã có tài khoản? <a href="/auth/login">Đăng nhập</a></p>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">Smart<span>Travel</span></div>
+      <div class="footer-tagline">Hệ thống du lịch thông minh. Khám phá Việt Nam theo cách của bạn.</div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tính năng</div>
+      <ul>
+        <li><a href="/map/">Bản đồ tương tác</a></li>
+        <li><a href="/itinerary/">Lịch trình</a></li>
+        <li><a href="/booking/">Đặt chỗ</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tài khoản</div>
+      <ul>
+        <li><a href="/auth/register">Đăng ký miễn phí</a></li>
+        <li><a href="/auth/login">Đăng nhập</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Dự án</div>
+      <ul>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">Nhóm 8 · SOSD</span></li>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">NEU</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 SmartTravel — Nhóm 8 · SOSD · NEU</p>
+    <p style="font-size:12px;color:rgba(253,250,245,0.25)">Flask · Python · JWT</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById('register-form');
+  var hint = document.getElementById('register-password-hint');
+  var alertEl = document.getElementById('register-alert');
+  if (!form) return;
+
+  function showAlert(msg) {
+    alertEl.textContent = msg;
+    alertEl.style.display = 'block';
+    alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function clearPasswordError() {
+    if (hint) hint.hidden = true;
+    var confirm = document.getElementById('confirm-password');
+    if (confirm) confirm.removeAttribute('aria-invalid');
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    alertEl.style.display = 'none';
+
+    var pass = document.getElementById('password');
+    var confirm = document.getElementById('confirm-password');
+    if (!pass || !confirm) return;
+
+    if (pass.value !== confirm.value) {
+      confirm.setAttribute('aria-invalid', 'true');
+      if (hint) hint.hidden = false;
+      confirm.focus();
+      return;
+    }
+    clearPasswordError();
+
+    var btn = document.getElementById('register-btn');
+    btn.textContent = 'Đang tạo tài khoản...';
+    btn.disabled = true;
+
+    var formData = new FormData(form);
+
+    try {
+      var response = await fetch("{{ url_for('auth.register') }}", {
+        method: 'POST',
+        body: formData
+      });
+      var data = await response.json();
+      if (response.ok) {
+        window.location.href = '/auth/login?registered=1';
+      } else {
+        showAlert(data.error || data.msg || 'Đăng ký thất bại. Vui lòng thử lại.');
+        btn.textContent = 'Tạo tài khoản';
+        btn.disabled = false;
+      }
+    } catch (err) {
+      showAlert('Lỗi kết nối đến máy chủ. Vui lòng thử lại.');
+      btn.textContent = 'Tạo tài khoản';
+      btn.disabled = false;
+    }
+  });
+
+  var passEl = document.getElementById('password');
+  var confirmEl = document.getElementById('confirm-password');
+  if (passEl) passEl.addEventListener('input', clearPasswordError);
+  if (confirmEl) confirmEl.addEventListener('input', clearPasswordError);
+})();
+</script>
 </body>
 </html>

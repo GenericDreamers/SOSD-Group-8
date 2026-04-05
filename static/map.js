@@ -32,6 +32,12 @@ function fetchJSON(url) {
     return fetch(url).then(r => r.json());
 }
 
+function formatVNDPrice(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return 'Chưa có';
+    return n.toLocaleString('vi-VN') + ' VNĐ';
+}
+
 function setPlaceMarkers() {
     const params = new URLSearchParams();
     if (filterState){
@@ -108,13 +114,13 @@ const filterPanel = document.getElementById('filter-panel');
 });
 
 async function showPlaceInfo(placeId) {
-    fetchJSON(`./api/places/${placeId}`)
+    fetchJSON(`/map/api/places/${placeId}`)
         .then(places => {
             const place = places[0];
             console.log("place info: " + JSON.stringify(place))
             document.getElementById('place-name').innerHTML = place.name;
             document.getElementById('place-category').innerHTML = place.category;
-            document.getElementById('place-price').innerHTML = place.price ?? '—';
+            document.getElementById('place-price').innerHTML = formatVNDPrice(place.price);
             document.getElementById('place-rating').innerHTML = place.rating ?? '—';
             document.getElementById('place-hours').innerHTML = place.opening_hours ?? '—';
 
@@ -148,7 +154,7 @@ async function showPlaceInfo(placeId) {
             
             loadReviews(placeId, 1);
             
-            fetch(`./api/reverse?lat=${place.lat}&lng=${place.lng}`)
+            fetch(`/map/api/reverse?lat=${place.lat}&lng=${place.lng}`)
                 .then(r => r.text())
                 .then(address => {
                     document.getElementById('place-address').innerHTML = address;
@@ -175,6 +181,26 @@ async function showPlaceInfo(placeId) {
                         }, 2000);
                     }
                 };
+            }
+
+            const bookingSection = document.getElementById('booking-section');
+            const bookingBtn = document.getElementById('book-place');
+            const category = String(place.category || '').trim().toLowerCase();
+            const isHotel = category === 'hotel' || category === 'khách sạn';
+            if (bookingSection && bookingBtn) {
+                if (isHotel) {
+                    bookingSection.style.display = 'block';
+                    bookingBtn.onclick = () => {
+                        const params = new URLSearchParams({
+                            place_id: String(place.id),
+                            place_name: String(place.name || '')
+                        });
+                        window.location.href = `/booking/?${params.toString()}`;
+                    };
+                } else {
+                    bookingSection.style.display = 'none';
+                    bookingBtn.onclick = null;
+                }
             }
 
             // Show panel
@@ -297,33 +323,46 @@ function showAddPlaceModal(lat, lng) {
     form.innerHTML = `
         <div class="modal-overlay">
             <div class="modal">
-                <h3>Add Missing Place</h3>
-                <p>All fields marked with "*" are required.</p>
-                <p>Latitude: ${lat.toFixed(4)}, Longitude: ${lng.toFixed(4)}</p>
-                <p>Address: <span id="reverse-address">Loading...</span></p>
-                <label for="place-name-input">Place name *</label><br>
-                <input type="text" id="place-name-input" name="place-name-input" /> <br>
-                <label> Place Category * </label> <br>
-                <select id="place-category-input">
-                    <option value="">Select category</option>
-                    <option value="Hotel">Hotel</option>
-                    <option value="Restaurant">Restaurant</option>
-                    <option value="Attraction">Attraction</option>
-                </select> <br>
-                <label for="place-price-input">Price</label><br>
-                <input type="number" id="place-price-input" name="place-price-input" /> <br>
-                <label for="place-opening-input">Opening Hours</label><br>
-                <input type="text" id="place-opening-input" name="place-opening-input" /> <br>
+                <h3 class="modal-title">Thêm địa điểm còn thiếu</h3>
+                <p class="modal-sub">Các trường có dấu * là bắt buộc.</p>
+                <p class="modal-sub"><strong>Tọa độ:</strong> ${lat.toFixed(4)}, ${lng.toFixed(4)}</p>
+                <p class="modal-sub"><strong>Địa chỉ:</strong> <span id="reverse-address">Đang tải...</span></p>
+
+                <div class="modal-field">
+                    <label for="place-name-input">Tên địa điểm *</label>
+                    <input type="text" id="place-name-input" name="place-name-input" />
+                </div>
+
+                <div class="modal-field">
+                    <label for="place-category-input">Loại địa điểm *</label>
+                    <select id="place-category-input">
+                        <option value="">Chọn loại địa điểm</option>
+                        <option value="Hotel">Khách sạn</option>
+                        <option value="Restaurant">Nhà hàng</option>
+                        <option value="Attraction">Điểm tham quan</option>
+                    </select>
+                </div>
+
+                <div class="modal-field">
+                    <label for="place-price-input">Mức giá (tuỳ chọn)</label>
+                    <input type="number" id="place-price-input" name="place-price-input" placeholder="Ví dụ: 500000" />
+                </div>
+
+                <div class="modal-field">
+                    <label for="place-opening-input">Giờ mở cửa (tuỳ chọn)</label>
+                    <input type="text" id="place-opening-input" name="place-opening-input" placeholder="Ví dụ: 08:00 - 22:00" />
+                </div>
+
                 <div class="modal-buttons">
-                    <button id="submit-place">Submit</button>
-                    <button id="cancel-place">Cancel</button>
+                    <button id="cancel-place" class="btn-secondary">Huỷ</button>
+                    <button id="submit-place" class="btn-primary">Gửi duyệt</button>
                 </div>
             </div>
         </div>
     `;
     document.body.appendChild(form);
 
-    fetch(`./api/reverse?lat=${lat}&lng=${lng}`)
+    fetch(`/map/api/reverse?lat=${lat}&lng=${lng}`)
         .then(r => r.text())
         .then(address => {
             document.getElementById('reverse-address').innerHTML = address;
@@ -336,7 +375,7 @@ function showAddPlaceModal(lat, lng) {
         const openingHours = document.getElementById('place-opening-input').value.trim();
         
         if (!name || !category) {
-            alert('Please fill in all required fields');
+            alert('Vui lòng điền đầy đủ các trường bắt buộc.');
             return;
         }
         
@@ -352,21 +391,21 @@ function showAddPlaceModal(lat, lng) {
 
 async function addMissingPlace(lat, lng, name, category, price, openingHours) {
     try {
-        const response = await fetch('./api/places', {
+        const response = await fetch('/map/api/places', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
             body: JSON.stringify({ name, category, lat, lng, price, openingHours })
         });
         
         if (response.ok) {
-            alert('Place submitted! Awaiting admin confirmation.');
+            alert('Đã gửi địa điểm. Vui lòng chờ quản trị viên xác nhận.');
             marker.remove();
         } else {
-            alert('Error submitting place.');
+            alert('Có lỗi khi gửi địa điểm.');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error submitting place.');
+        alert('Có lỗi khi gửi địa điểm.');
     }
 }
 

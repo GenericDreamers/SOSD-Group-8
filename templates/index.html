@@ -1,69 +1,568 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Testing</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Travel — Khám phá thế giới thông minh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles_index.css') }}">
 </head>
 <body>
-    <h1>Welcome to Smart Travel</h1>
-    <p>Trang này dùng test các chức năng của ứng dụng. Có rất nhiều trang chưa có template hay gì cả</p>
-    <ul>
-        <li><a href="/auth/register">Register</a></li>
-        <li><a href="/auth/login">Login</a></li>
-        <li><a href="/map">View Map</a></li>
-        <li><a href="/profile">View Profile</a></li>
-        <li><a href="/admin">Admin Dashboard</a></li>
-        <li><a href="/auth/api/me" id="api-test-me">API /me Test</a></li>
-        <li><a href="/auth/api/refresh" id="api-test-refresh">API /refresh Test</a></li>
-    </ul>
-</body>
+
+<nav>
+  <a href="/" class="nav-logo">Smart<span>Travel</span></a>
+  <ul class="nav-links">
+    <li><a href="/map/">Bản đồ</a></li>
+    <li><a href="/booking/">Đặt chỗ</a></li>
+    <li><a href="/itinerary/">Lịch trình</a></li>
+    <li><a href="/user/profile">Tài khoản</a></li>
+  </ul>
+  <div class="nav-auth" id="nav-auth"></div>
+</nav>
+
+<script src="{{ url_for('static', filename='notificationCenter.js') }}"></script>
 <script>
-    document.getElementById('api-test-me').addEventListener('click', async (e) => {
-        e.preventDefault();
-        
-        try {
-            const response = await fetch('/auth/api/me', {
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                alert('API Test Success: ' + JSON.stringify(data));
-            } else {
-                alert('API Test Failed: ' + data.msg);
-            }
-        } catch (error) {
-            console.error('API Test error:', error);
-            alert('API Test error');
+(function() {
+  let token = localStorage.getItem('access_token');
+  const refreshToken = localStorage.getItem('refresh_token');
+  const navAuth = document.getElementById('nav-auth');
+
+  function isTokenValid(t) {
+    if (!t) return false;
+    try { return JSON.parse(atob(t.split('.')[1])).exp * 1000 > Date.now(); } catch { return false; }
+  }
+  function getInitial(t) {
+    try { const p = JSON.parse(atob(t.split('.')[1])); return (p.username || p.email || 'U').charAt(0).toUpperCase(); } catch { return 'U'; }
+  }
+
+  function setHomeMode(isAuth) {
+    document.body.classList.toggle('is-auth', !!isAuth);
+  }
+
+  async function tryRefreshAccess() {
+    if (!refreshToken) return null;
+    try {
+      const res = await fetch('/auth/api/refresh', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + refreshToken }
+      });
+      const data = await res.json();
+      if (res.ok && data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+        token = data.access_token;
+        return token;
+      }
+    } catch {}
+    return null;
+  }
+
+  window.doLogout = function() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    window.location.href = '/';
+  };
+
+  async function initAuthUI() {
+    if (!isTokenValid(token)) {
+      await tryRefreshAccess();
+    }
+
+    if (isTokenValid(token)) {
+      setHomeMode(true);
+      navAuth.innerHTML = `
+        <div class="nav-bell-wrap">
+          <button class="nav-bell" id="nav-bell-btn" aria-label="Thông báo">🔔<span class="nav-bell-count" id="nav-bell-count">0</span></button>
+          <div class="nav-notify-dropdown" id="nav-notify-dropdown">
+            <div class="nav-notify-head">
+              <span>Thông báo</span>
+              <button type="button" id="mark-read-btn">Đánh dấu đã đọc</button>
+            </div>
+            <div class="nav-notify-list" id="nav-notify-list"></div>
+          </div>
+        </div>
+        <div class="nav-user">
+          <div class="nav-avatar">${getInitial(token)}</div>
+          <div class="nav-user-dropdown">
+            <a href="/map/">Bản đồ</a>
+            <a href="/itinerary/">Lịch trình của tôi</a>
+            <a href="/booking/">Đặt chỗ</a>
+            <a href="/user/profile">Hồ sơ</a>
+            <a href="#" onclick="doLogout();return false;" class="nav-logout-item">Đăng xuất</a>
+          </div>
+        </div>`;
+
+      const bellBtn = document.getElementById('nav-bell-btn');
+      const bellCount = document.getElementById('nav-bell-count');
+      const notifyDropdown = document.getElementById('nav-notify-dropdown');
+      const notifyList = document.getElementById('nav-notify-list');
+      const markReadBtn = document.getElementById('mark-read-btn');
+
+      function esc(v) {
+        return String(v || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function iconForType(type) {
+        if (type === 'payment') return { cls: 'type-payment', icon: '💳' };
+        if (type === 'booking') return { cls: 'type-booking', icon: '📅' };
+        if (type === 'itinerary') return { cls: 'type-itinerary', icon: '🧭' };
+        return { cls: 'type-info', icon: '🔔' };
+      }
+
+      function renderNotifications() {
+        const list = (window.SmartNotify && window.SmartNotify.getAll) ? window.SmartNotify.getAll() : [];
+        const unread = (window.SmartNotify && window.SmartNotify.unreadCount) ? window.SmartNotify.unreadCount() : 0;
+        bellCount.style.display = unread > 0 ? 'inline-flex' : 'none';
+        bellCount.textContent = unread > 9 ? '9+' : String(unread);
+
+        if (!list.length) {
+          notifyList.innerHTML = '<div class="notify-empty">Chưa có thông báo nào</div>';
+          return;
         }
-    });
-    document.getElementById('api-test-refresh').addEventListener('click', async (e) => {
-        e.preventDefault();
-        
-        try {
-            const response = await fetch('/auth/api/refresh', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('refresh_token')
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok && data.access_token) {
-                localStorage.setItem('access_token', data.access_token);
-                alert('Token refreshed successfully');
-            } else {
-                alert('Token refresh failed: ' + data.msg);
-            }
-        } catch (error) {
-            console.error('Token refresh error:', error);
-            alert('Token refresh error');
+
+        notifyList.innerHTML = list.map(n => {
+          const dot = n.read ? '' : '<span class="notify-dot"></span>';
+          const time = new Date(n.createdAt).toLocaleString('vi-VN');
+          const icon = iconForType(n.type);
+          return `
+            <div class="notify-item ${n.read ? '' : 'unread'}">
+              <div class="notify-title-row">${dot}<span class="notify-type-icon ${icon.cls}">${icon.icon}</span><strong>${esc(n.title)}</strong></div>
+              <p>${esc(n.message || '')}</p>
+              <div class="notify-meta">
+                <time>${time}</time>
+                <button type="button" class="notify-remove" data-id="${esc(n.id)}">Xóa</button>
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      bellBtn.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        notifyDropdown.classList.toggle('open');
+        renderNotifications();
+      });
+
+      markReadBtn.addEventListener('click', function() {
+        if (window.SmartNotify && window.SmartNotify.markAllRead) {
+          window.SmartNotify.markAllRead();
         }
-    });
+        renderNotifications();
+      });
+
+      notifyList.addEventListener('click', function(ev) {
+        const btn = ev.target.closest('.notify-remove');
+        if (!btn) return;
+        ev.stopPropagation();
+        if (window.SmartNotify && window.SmartNotify.removeById) {
+          window.SmartNotify.removeById(btn.dataset.id);
+        }
+        renderNotifications();
+      });
+
+      document.addEventListener('click', function(ev) {
+        if (!notifyDropdown.contains(ev.target) && ev.target !== bellBtn) {
+          notifyDropdown.classList.remove('open');
+        }
+      });
+
+      window.addEventListener('smarttravel:notifications-updated', renderNotifications);
+      renderNotifications();
+    } else {
+      setHomeMode(false);
+      navAuth.innerHTML = `
+        <a href="/auth/login" class="nav-login">Đăng nhập</a>
+        <a href="/auth/register" class="nav-cta">Đăng ký ngay</a>`;
+    }
+  }
+
+  initAuthUI();
+})();
 </script>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-tag">Hệ thống du lịch thông minh</div>
+    <h1>Khám phá thế giới<br>theo cách <em>riêng</em><br>của bạn</h1>
+    <p class="hero-desc">Lên kế hoạch chuyến đi thông minh với bản đồ tương tác, dự báo thời tiết thực tế, đặt chỗ tức thì và hành trình cá nhân hoá hoàn toàn.</p>
+    <div class="hero-actions">
+      <a href="/auth/register" class="btn-primary guest-only">Đăng ký ngay</a>
+      <a href="/map/" class="btn-outline">Khám phá bản đồ</a>
+      <a href="/itinerary/" class="btn-primary auth-only">Đi tới lịch trình</a>
+    </div>
+    <div class="hero-stats">
+      <div>
+        <div class="stat-num">360+</div>
+        <div class="stat-label">Địa điểm nổi bật</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div>
+        <div class="stat-num">36K</div>
+        <div class="stat-label">Người dùng</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div>
+        <div class="stat-num">4.9★</div>
+        <div class="stat-label">Đánh giá trung bình</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-img-grid">
+      <div class="img-cell">
+        <img src="https://bcp.cdnchinhphu.vn/334894974524682240/2025/9/18/cdhoian5-17581621538711341831070.jpeg" alt="Hội An" loading="lazy">
+        <div class="img-cell-label">Hội An</div>
+      </div>
+      <div class="img-cell">
+        <img src="https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2023/3/9/1155741/Du-Lich-Vinh-Ha-Long-01.jpg" alt="Hạ Long" loading="lazy">
+        <div class="img-cell-label">Hạ Long</div>
+      </div>
+      <div class="img-cell">
+        <img src="https://static.vinwonders.com/production/canh-dep-da-lat-1.jpg" alt="Đà Lạt" loading="lazy">
+        <div class="img-cell-label">Đà Lạt</div>
+      </div>
+      <div class="img-cell">
+        <img src="https://vcdn1-dulich.vnecdn.net/2021/02/03/520-1612317009-6154-1612322913-1614-1340-1612348316.png?w=500&h=300&q=100&dpr=1&fit=crop&s=VTlGVyPrQ7orJUs4SojrdQ" alt="Sapa" loading="lazy">
+        <div class="img-cell-label">Sapa</div>
+      </div>
+    </div>
+    <div class="img-overlay"></div>
+  </div>
+</section>
+
+<section class="city-weather" id="city-weather">
+  <div class="section-label">Nhiệt độ thời gian thực</div>
+  <div class="section-title">Thời tiết tại các thành phố lớn</div>
+  <div class="weather-grid">
+    <article class="weather-card" data-city="Hà Nội" data-lat="21.0285" data-lng="105.8542">
+      <div class="weather-top">
+        <div>
+          <div class="weather-city">Hà Nội</div>
+          <div class="weather-date">Đang cập nhật...</div>
+        </div>
+        <div class="weather-icon">🌤️</div>
+      </div>
+      <div class="weather-temp">--°C</div>
+      <div class="weather-desc">Đang tải dữ liệu</div>
+    </article>
+
+    <article class="weather-card" data-city="Đà Nẵng" data-lat="16.0544" data-lng="108.2022">
+      <div class="weather-top">
+        <div>
+          <div class="weather-city">Đà Nẵng</div>
+          <div class="weather-date">Đang cập nhật...</div>
+        </div>
+        <div class="weather-icon">🌦️</div>
+      </div>
+      <div class="weather-temp">--°C</div>
+      <div class="weather-desc">Đang tải dữ liệu</div>
+    </article>
+
+    <article class="weather-card" data-city="TP. Hồ Chí Minh" data-lat="10.7769" data-lng="106.7009">
+      <div class="weather-top">
+        <div>
+          <div class="weather-city">TP. Hồ Chí Minh</div>
+          <div class="weather-date">Đang cập nhật...</div>
+        </div>
+        <div class="weather-icon">☀️</div>
+      </div>
+      <div class="weather-temp">--°C</div>
+      <div class="weather-desc">Đang tải dữ liệu</div>
+    </article>
+  </div>
+</section>
+
+<section class="features">
+  <div class="section-label">Tính năng nổi bật</div>
+  <div class="section-title">Mọi thứ bạn cần<br>cho chuyến đi hoàn hảo</div>
+  <div class="features-grid">
+    <a href="/map/" class="feature-card">
+      <div class="fc-num">01</div>
+      <div class="fc-icon">🗺️</div>
+      <div class="fc-title">Bản đồ tương tác</div>
+      <div class="fc-desc">Khám phá khách sạn, nhà hàng và điểm tham quan trực tiếp trên bản đồ. Lọc theo loại, giá và đánh giá.</div>
+    </a>
+    <a href="/itinerary/" class="feature-card">
+      <div class="fc-num">02</div>
+      <div class="fc-icon">📋</div>
+      <div class="fc-title">Lịch trình thông minh</div>
+      <div class="fc-desc">Tạo và quản lý hành trình theo ngày. Thêm địa điểm yêu thích, sắp xếp thứ tự linh hoạt.</div>
+    </a>
+    <a href="/booking/" class="feature-card">
+      <div class="fc-num">03</div>
+      <div class="fc-icon">🏨</div>
+      <div class="fc-title">Đặt chỗ nhanh</div>
+      <div class="fc-desc">Đặt khách sạn và vé tham quan trực tiếp. Nhận xác nhận và quản lý đặt chỗ dễ dàng.</div>
+    </a>
+    <a href="/payment/" class="feature-card">
+      <div class="fc-num">04</div>
+      <div class="fc-icon">💳</div>
+      <div class="fc-title">Thanh toán an toàn</div>
+      <div class="fc-desc">Hỗ trợ nhiều phương thức thanh toán: thẻ tín dụng, VNPay, MoMo. Bảo mật và nhanh chóng.</div>
+    </a>
+    <a href="/map/" class="feature-card">
+      <div class="fc-num">05</div>
+      <div class="fc-icon">🌤️</div>
+      <div class="fc-title">Thời tiết thực tế</div>
+      <div class="fc-desc">Xem dự báo thời tiết ngay trên bản đồ để lên kế hoạch chính xác nhất cho chuyến đi.</div>
+    </a>
+    <a href="/user/profile" class="feature-card">
+      <div class="fc-num">06</div>
+      <div class="fc-icon">👤</div>
+      <div class="fc-title">Tài khoản cá nhân</div>
+      <div class="fc-desc">Lưu lịch sử đặt chỗ, quản lý hồ sơ và nhận thông báo cá nhân hoá từ hệ thống.</div>
+    </a>
+  </div>
+</section>
+
+<section class="destinations" id="destinations">
+  <div class="section-label">Điểm đến nổi bật</div>
+  <div class="section-title">Việt Nam tươi đẹp<br>đang chờ bạn</div>
+  <div class="dest-grid">
+    <div class="dest-card">
+      <img src="https://bcp.cdnchinhphu.vn/334894974524682240/2025/9/18/cdhoian5-17581621538711341831070.jpeg" alt="Hội An" loading="lazy">
+      <div class="dest-overlay"></div>
+      <div class="dest-info">
+        <div class="dest-name">Phố cổ Hội An</div>
+        <div class="dest-meta">
+          <span class="dest-tag">Di sản thế giới</span>
+          <span class="dest-rating">★ 4.9</span>
+        </div>
+      </div>
+    </div>
+    <div class="dest-card">
+      <img src="https://media-cdn-v2.laodong.vn/Storage/NewsPortal/2023/3/9/1155741/Du-Lich-Vinh-Ha-Long-01.jpg" alt="Hạ Long" loading="lazy">
+      <div class="dest-overlay"></div>
+      <div class="dest-info">
+        <div class="dest-name">Vịnh Hạ Long</div>
+        <div class="dest-meta">
+          <span class="dest-tag">Kỳ quan thiên nhiên</span>
+          <span class="dest-rating">★ 4.8</span>
+        </div>
+      </div>
+    </div>
+    <div class="dest-card">
+      <img src="https://static.vinwonders.com/production/canh-dep-da-lat-1.jpg" alt="Đà Lạt" loading="lazy">
+      <div class="dest-overlay"></div>
+      <div class="dest-info">
+        <div class="dest-name">Đà Lạt</div>
+        <div class="dest-meta">
+          <span class="dest-tag">Thành phố ngàn hoa</span>
+          <span class="dest-rating">★ 4.7</span>
+        </div>
+      </div>
+    </div>
+    <div class="dest-card">
+      <img src="https://vcdn1-dulich.vnecdn.net/2021/02/03/520-1612317009-6154-1612322913-1614-1340-1612348316.png?w=500&h=300&q=100&dpr=1&fit=crop&s=VTlGVyPrQ7orJUs4SojrdQ" alt="Sapa" loading="lazy">
+      <div class="dest-overlay"></div>
+      <div class="dest-info">
+        <div class="dest-name">Sapa</div>
+        <div class="dest-meta">
+          <span class="dest-tag">Núi rừng Tây Bắc</span>
+          <span class="dest-rating">★ 4.8</span>
+        </div>
+      </div>
+    </div>
+    <div class="dest-card">
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRI1ii2fnqbi06_Yu19ualKr8PvW8BvYHZQCg&s" alt="Phú Quốc" loading="lazy">
+      <div class="dest-overlay"></div>
+      <div class="dest-info">
+        <div class="dest-name">Phú Quốc</div>
+        <div class="dest-meta">
+          <span class="dest-tag">Đảo ngọc</span>
+          <span class="dest-rating">★ 4.9</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div>
+    <div class="section-label">Cách hoạt động</div>
+    <div class="section-title">Lên kế hoạch trong vài phút</div>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-title">Đăng ký tài khoản</div>
+          <div class="step-desc">Tạo tài khoản miễn phí trong 30 giây. Bảo mật với JWT và mã hóa hiện đại.</div>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-title">Tìm kiếm địa điểm</div>
+          <div class="step-desc">Lọc theo thành phố, giá cả, đánh giá. Xem trực tiếp trên bản đồ tương tác.</div>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-title">Tạo lịch trình</div>
+          <div class="step-desc">Thêm các địa điểm vào hành trình theo ngày. Sắp xếp thứ tự linh hoạt.</div>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <div class="step-title">Đặt chỗ & thanh toán</div>
+          <div class="step-desc">Đặt trực tiếp qua nền tảng. Nhận xác nhận và thông báo tức thì.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="how-visual">
+    <div class="phone-mockup">
+      <div class="phone-screen">
+        <div class="ps-bar">
+          <span class="ps-bar-icon">🔍</span>
+          <span class="ps-bar-text">Tìm địa điểm...</span>
+        </div>
+        <div class="ps-map">
+          <div class="ps-pin"></div>
+        </div>
+        <div class="ps-cards">
+          <div class="ps-item">
+            <div class="ps-item-dot" style="background:#7A9E87"></div>
+            <div>
+              <div class="ps-item-title">Phố cổ Hội An</div>
+              <div class="ps-item-sub">★ 4.9 · Di sản</div>
+            </div>
+            <div class="ps-item-price">120K</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-dot" style="background:#C4533A"></div>
+            <div>
+              <div class="ps-item-title">Vịnh Hạ Long</div>
+              <div class="ps-item-sub">★ 4.8 · Thiên nhiên</div>
+            </div>
+            <div class="ps-item-price">350K</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-dot" style="background:#C9A84C"></div>
+            <div>
+              <div class="ps-item-title">Đà Lạt</div>
+              <div class="ps-item-sub">★ 4.7 · Nghỉ dưỡng</div>
+            </div>
+            <div class="ps-item-price">200K</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="guest-only">
+  <div class="section-label">Bắt đầu ngay hôm nay</div>
+  <div class="section-title">Chuyến đi tuyệt vời nhất đang chờ bạn</div>
+  <p>Tham gia cùng hàng nghìn người dùng đang khám phá Việt Nam thông minh hơn mỗi ngày.</p>
+  <div class="cta-buttons">
+    <a href="/auth/register" class="btn-primary">Đăng ký miễn phí</a>
+    <a href="/auth/login" class="btn-outline">Đăng nhập</a>
+  </div>
+  </div>
+
+  <div class="auth-only">
+    <div class="section-label">Xin chào, nhà thám hiểm</div>
+    <div class="section-title">Bạn đã sẵn sàng cho hành trình mới?</div>
+    <p>Quản lý chuyến đi hiện tại hoặc bắt đầu hành trình mới chỉ với một cú nhấp.</p>
+    <div class="cta-buttons">
+      <a href="/itinerary/" class="btn-primary">Mở lịch trình của tôi</a>
+      <a href="/booking/" class="btn-outline">Đặt chỗ ngay</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">Smart<span>Travel</span></div>
+      <div class="footer-tagline">Hệ thống du lịch thông minh. Khám phá Việt Nam theo cách của bạn với công nghệ SOA hiện đại.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:16px">
+        <span style="font-size:10px;font-weight:500;letter-spacing:0.5px;padding:3px 9px;border-radius:2px;border:1px solid rgba(253,250,245,0.15);color:rgba(253,250,245,0.45);text-transform:uppercase">Flask</span>
+        <span style="font-size:10px;font-weight:500;letter-spacing:0.5px;padding:3px 9px;border-radius:2px;border:1px solid rgba(253,250,245,0.15);color:rgba(253,250,245,0.45);text-transform:uppercase">JWT</span>
+        <span style="font-size:10px;font-weight:500;letter-spacing:0.5px;padding:3px 9px;border-radius:2px;border:1px solid rgba(253,250,245,0.15);color:rgba(253,250,245,0.45);text-transform:uppercase">REST API</span>
+        <span style="font-size:10px;font-weight:500;letter-spacing:0.5px;padding:3px 9px;border-radius:2px;border:1px solid rgba(253,250,245,0.15);color:rgba(253,250,245,0.45);text-transform:uppercase">SQLite</span>
+      </div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tính năng</div>
+      <ul>
+        <li><a href="/map/">Bản đồ tương tác</a></li>
+        <li><a href="/itinerary/">Lịch trình</a></li>
+        <li><a href="/booking/">Đặt chỗ</a></li>
+        <li><a href="/payment/">Thanh toán</a></li>
+        <li><a href="/user/profile">Tài khoản</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Tài khoản</div>
+      <ul>
+        <li><a href="/auth/register">Đăng ký miễn phí</a></li>
+        <li><a href="/auth/login">Đăng nhập</a></li>
+        <li><a href="/user/profile">Hồ sơ cá nhân</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Dự án</div>
+      <ul>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">Nhóm 8 · SOSD</span></li>
+        <li><span style="color:rgba(253,250,245,0.5);font-size:13px">NEU</span></li>
+        <li><a href="mailto:smarttravel@group8.edu.vn">smarttravel@group8.edu.vn</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 SmartTravel — Nhóm 8 · SOSD · NEU</p>
+    <p style="font-size:12px;color:rgba(253,250,245,0.25)">Flask · Python · SQLite · JWT</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const cards = Array.from(document.querySelectorAll('.weather-card'));
+  if (!cards.length) return;
+
+  const dateFmt = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  function setError(card) {
+    card.querySelector('.weather-temp').textContent = '--°C';
+    card.querySelector('.weather-desc').textContent = 'Không tải được dữ liệu';
+  }
+
+  async function loadCityWeather(card) {
+    const lat = card.dataset.lat;
+    const lng = card.dataset.lng;
+    try {
+      const res = await fetch(`/weather/current?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+      if (!res.ok) throw new Error('weather request failed');
+      const data = await res.json();
+      const current = data && data.current ? data.current : null;
+      if (!current || typeof current.temperature === 'undefined') throw new Error('invalid weather payload');
+
+      const temperature = Number(current.temperature);
+      card.querySelector('.weather-temp').textContent = `${Math.round(temperature)}°C`;
+      card.querySelector('.weather-desc').textContent = current.weathercode || 'Không có mô tả';
+      card.querySelector('.weather-date').textContent = `Cập nhật ${dateFmt.format(new Date())}`;
+    } catch (e) {
+      setError(card);
+    }
+  }
+
+  Promise.all(cards.map(loadCityWeather));
+})();
+</script>
+
+</body>
 </html>

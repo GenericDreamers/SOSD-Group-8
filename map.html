@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bản đồ — Smart Travel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='mapStyles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style_map_header.css') }}">
+</head>
+<body>
+
+<header class="map-nav">
+  <a href="/" class="map-nav-logo">Smart<span>Travel</span></a>
+  <ul class="map-nav-links">
+    <li><a href="/map/" class="active">Bản đồ</a></li>
+    <li><a href="/booking/">Đặt chỗ</a></li>
+    <li><a href="/itinerary/">Lịch trình</a></li>
+    <li><a href="/user/profile">Tài khoản</a></li>
+  </ul>
+  <div class="map-nav-auth" id="map-nav-auth"></div>
+</header>
+
+<div>
+  <div id="map">
+    <button id="toggle-itinerary" class="map-control-btn" aria-label="Xem lịch trình">
+      📋 Lịch trình
+    </button>
+    <div id="search-container">
+      <input type="text" placeholder="Tìm kiếm địa điểm..." id="input">
+      <ul id="suggestionsList"></ul>
+    </div>
+
+    <button id="toggle-filters" aria-label="Bộ lọc">
+      🔍 Bộ lọc
+    </button>
+    <div id="filter-panel" class="filter-panel">
+      <h3>Lọc địa điểm</h3>
+      <button id="close-filters" aria-label="Đóng">✕</button>
+      <div class="filter-group">
+        <label for="category">Loại:</label>
+        <select id="category">
+          <option value="">Tất cả</option>
+          <option value="Hotel">Khách sạn</option>
+          <option value="Restaurant">Nhà hàng</option>
+          <option value="Attraction">Điểm tham quan</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="min-price">Giá tối thiểu (VND):</label>
+        <input type="number" id="min-price" min="0" step="10">
+      </div>
+      <div class="filter-group">
+        <label for="max-price">Giá tối đa (VND):</label>
+        <input type="number" id="max-price" min="0" step="10">
+      </div>
+      <div class="filter-group">
+        <label for="rating">Đánh giá tối thiểu:</label>
+        <select id="rating">
+          <option value="">Tất cả</option>
+          <option value="3">3★ trở lên</option>
+          <option value="4">4★ trở lên</option>
+          <option value="4.5">4.5★ trở lên</option>
+        </select>
+      </div>
+      <button id="clear-filters" class="btn-delete">Xoá bộ lọc</button>
+    </div>
+
+    <div id="location-info" class="info-panel hidden">
+      <div class="info-header">
+        <h2 id="place-name"></h2>
+        <button id="close-info" aria-label="Đóng">✕</button>
+      </div>
+
+      <section class="info-section">
+        <h2>Chi tiết</h2>
+        <ul class="details-list">
+          <li><strong>Địa chỉ:</strong> <span id="place-address"></span></li>
+          <li><strong>Loại:</strong> <span id="place-category"></span></li>
+          <li><strong>Giá:</strong> <span id="place-price"></span></li>
+          <li><strong>Đánh giá:</strong> <span id="place-rating"></span> ★</li>
+          <li><strong>Giờ mở cửa:</strong> <span id="place-hours"></span></li>
+          <li id="confirm-status"><strong>Trạng thái:</strong> <span></span></li>
+        </ul>
+      </section>
+
+      <section class="info-section" id="itinerary-section">
+        <h2>Thêm vào lịch trình</h2>
+        <button id="add-to-itinerary" class="btn-primary">＋ Thêm vào hành trình</button>
+      </section>
+
+      <section class="info-section" id="booking-section" style="display:none">
+        <h2>Đặt chỗ khách sạn</h2>
+        <p style="font-size:13px;color:#4f5860;margin-bottom:10px">Chọn khách sạn này để tạo booking nhanh.</p>
+        <button id="book-place" class="btn-primary">Đặt khách sạn này</button>
+      </section>
+
+      <section class="info-section" id="weather-section">
+        <h2>Thời tiết</h2>
+        <h3>Hiện tại</h3>
+        <div id="weather-current"></div>
+        <h3>Dự báo 5 ngày</h3>
+        <div id="weather-forecast" class="forecast-grid"></div>
+      </section>
+
+      <section class="info-section" id="reviews-section">
+        <h2>Đánh giá gần đây</h2>
+        <ul id="reviews-list" class="reviews-list"></ul>
+        <div class="review-nav">
+          <button id="prev-rev" class="nav-btn" disabled>← Trước</button>
+          <span id="rev-info"></span>
+          <button id="next-rev" class="nav-btn">Tiếp →</button>
+        </div>
+        <button id="add-review" class="btn-primary">Viết đánh giá</button>
+      </section>
+    </div>
+
+    <div id="itinerary-panel" class="itinerary-sidebar hidden">
+      <div class="itinerary-header">
+        <h2>Hành trình của tôi</h2>
+        <button id="close-itinerary" aria-label="Đóng">✕</button>
+      </div>
+      <div class="itinerary-controls">
+        <button id="optimize-route" class="btn-secondary">Tối ưu lộ trình</button>
+        <button id="clear-itinerary" class="btn-secondary">Xoá tất cả</button>
+        <button id="load-itinerary" class="btn-secondary">Tải lịch trình</button>
+      </div>
+      <ul id="itinerary-list" class="itinerary-list"></ul>
+      <div class="itinerary-footer">
+        <p id="itinerary-distance"></p>
+        <button id="save-itinerary" class="btn-primary">Lưu lịch trình</button>
+        <button id="export-itinerary" class="btn-secondary">Xuất file</button>
+      </div>
+    </div>
+
+    <!-- Load Itinerary Modal -->
+    <div id="load-modal-overlay" class="modal-overlay hidden">
+      <div class="modal">
+        <h3 style="margin-top:0;margin-bottom:16px;font-family:'Playfair Display',serif">Tải lịch trình đã lưu</h3>
+        <div id="itineraries-list" class="itineraries-container" style="margin-bottom:16px;max-height:400px;overflow-y:auto"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="cancel-load" class="btn-secondary">Huỷ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Token warning modal -->
+<div id="token-warning-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <h3 style="margin-top:0;font-family:'Playfair Display',serif">Phiên sắp hết hạn</h3>
+    <p style="margin:16px 0;">Phiên đăng nhập sẽ hết hạn sau <span id="warning-countdown">5:00</span> phút.</p>
+    <p style="color:#666;font-size:14px;margin:16px 0">Vui lòng lưu công việc hoặc làm mới phiên.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button id="dismiss-warning" class="btn-secondary">Bỏ qua</button>
+      <button id="refresh-session" class="btn-primary">Làm mới phiên</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ url_for('static', filename='notificationCenter.js') }}"></script>
+<script src="{{ url_for('static', filename='map.js') }}"></script>
+<script src="{{ url_for('static', filename='map-review.js') }}"></script>
+<script src="{{ url_for('static', filename='map-itinerary.js') }}"></script>
+<script src="{{ url_for('static', filename='tokenManager.js') }}"></script>
+<script>
+(function(){
+  const t = localStorage.getItem('access_token');
+  const el = document.getElementById('map-nav-auth');
+  function valid(t){ try{ return JSON.parse(atob(t.split('.')[1])).exp*1000>Date.now(); }catch{ return false; } }
+  function initial(t){ try{ const p=JSON.parse(atob(t.split('.')[1])); return (p.username||p.email||'U').charAt(0).toUpperCase(); }catch{ return 'U'; } }
+  function logout(){ localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); window.location.href='/'; }
+
+  if(t && valid(t)){
+    el.innerHTML = `
+      <div class="map-user">
+        <div class="map-avatar">${initial(t)}</div>
+        <div class="map-dropdown">
+          <a href="/user/profile">Hồ sơ</a>
+          <a href="/itinerary/">Lịch trình</a>
+          <a href="/booking/">Đặt chỗ</a>
+          <a href="#" class="logout" onclick="(function(){localStorage.removeItem('access_token');localStorage.removeItem('refresh_token');window.location.href='/';})();return false;">Đăng xuất</a>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = '<a href="/auth/login" class="map-login-btn">Đăng nhập</a>';
+  }
+})();
+</script>
+</body>
+</html>

@@ -83,6 +83,9 @@
   function initial(t) {
     try { const p = JSON.parse(atob(t.split('.')[1])); return (p.username || p.email || 'U').charAt(0).toUpperCase(); } catch { return 'U'; }
   }
+  function role(t) {
+    try { return String(JSON.parse(atob(t.split('.')[1])).role || '').toLowerCase(); } catch { return ''; }
+  }
 
   window.isValidToken = isValid;
   window.getToken = () => localStorage.getItem('access_token');
@@ -93,6 +96,7 @@
   };
 
   if (token && isValid(token)) {
+    const isAdmin = role(token) === 'admin';
     el.innerHTML = `
       <div class="nav-bell-wrap">
         <button class="nav-bell" id="nav-bell-btn" aria-label="Thông báo">🔔<span class="nav-bell-count" id="nav-bell-count">0</span></button>
@@ -108,6 +112,7 @@
         <div class="nav-avatar">${initial(token)}</div>
         <div class="nav-user-dropdown">
           <a href="/user/profile">Hồ sơ</a>
+          ${isAdmin ? '<a href="/map/admin">Dashboard quản trị</a>' : ''}
           <a href="/itinerary/">Lịch trình</a>
           <a href="/booking/">Đặt chỗ</a>
           <a href="#" onclick="doLogout();return false;" class="nav-logout-item">Đăng xuất</a>

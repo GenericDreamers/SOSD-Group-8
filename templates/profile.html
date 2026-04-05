@@ -106,7 +106,24 @@ let currentUserId = null;
 
 function isValid(t){ if(!t) return false; try{ return JSON.parse(atob(t.split('.')[1])).exp*1000>Date.now(); }catch{return false;} }
 function getUserId(t){ try{ return JSON.parse(atob(t.split('.')[1])).sub; }catch{return null;} }
+function getUserRoleFromToken(t){ try{ return JSON.parse(atob(t.split('.')[1])).role || ''; }catch{return ''; } }
 function showAlert(msg, type='success'){ const b=document.getElementById('alert-box'); b.innerHTML=`<div class="alert alert-${type}">${msg}</div>`; setTimeout(()=>b.innerHTML='',4000); }
+
+function normalizeRole(role){
+  const r = String(role || '').trim().toLowerCase();
+  if(r === 'admin') return 'Admin';
+  return 'User';
+}
+
+function renderRoleBadge(role){
+  const roleEl = document.getElementById('profile-role');
+  const normalized = normalizeRole(role);
+  const isAdmin = normalized === 'Admin';
+  roleEl.innerHTML = `
+    <span class="profile-role-badge${isAdmin ? ' admin' : ''}">${isAdmin ? 'Quản trị viên' : 'Người dùng'}</span>
+    ${isAdmin ? '<a href="/map/admin" style="margin-left:8px;font-size:12px;color:var(--terracotta);font-weight:600">Mở trang quản trị</a>' : ''}
+  `;
+}
 
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['info','security'][i]===name));
@@ -140,11 +157,7 @@ async function loadProfile(){
     document.getElementById('username').value = profile.Username || '';
     document.getElementById('birthday').value = profile.Birthday || '';
     document.getElementById('gender').value = profile.Gender || 'Other';
-    if(profile.Role){
-      const roleEl = document.getElementById('profile-role');
-      const isAdmin = profile.Role === 'Admin';
-      roleEl.innerHTML = `<span class="profile-role-badge${isAdmin?' admin':''}">${isAdmin ? 'Quản trị viên' : 'Người dùng'}</span>`;
-    }
+    renderRoleBadge(profile.Role || getUserRoleFromToken(getTokenNow()));
   } catch(e) { console.error(e); }
 }
 

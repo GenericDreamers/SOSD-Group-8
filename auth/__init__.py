@@ -36,8 +36,14 @@ def login():
     user = query_db("SELECT * FROM Users WHERE Email = ?", [data["email"]], one=True)
     if not user or not check_password_hash(user['Password'], data["password"]):
         return jsonify({"msg": "Invalid credentials"}), 401
-    access = create_access_token(identity=str(user["ID"]), additional_claims={"role": user["Role"]})
-    refresh = create_refresh_token(identity=str(user["ID"]), additional_claims={"role": user["Role"]})
+    profile = query_db("SELECT Username FROM UserProfiles WHERE UserID = ?", [user["ID"]], one=True)
+    claims = {
+        "role": user["Role"],
+        "email": user["Email"],
+        "username": profile["Username"] if profile and profile["Username"] else ""
+    }
+    access = create_access_token(identity=str(user["ID"]), additional_claims=claims)
+    refresh = create_refresh_token(identity=str(user["ID"]), additional_claims=claims)
     return jsonify(access_token=access, refresh_token=refresh), 200
 
 
@@ -45,9 +51,21 @@ def login():
 @jwt_required(refresh=True)
 def refresh():
     identity = get_jwt_identity()
-    user_role = get_jwt().get("role", "User")
-    new_access = create_access_token(identity=identity, additional_claims={"role": user_role})
-    print(f"Refreshed token for user {identity} with role {user_role}")
+    row = query_db(
+        """SELECT u.Role, u.Email, up.Username
+           FROM Users u
+           LEFT JOIN UserProfiles up ON up.UserID = u.ID
+           WHERE u.ID = ?""",
+        [identity],
+        one=True
+    )
+    claims = {
+        "role": row["Role"] if row and row["Role"] else "User",
+        "email": row["Email"] if row and row["Email"] else "",
+        "username": row["Username"] if row and row["Username"] else ""
+    }
+    new_access = create_access_token(identity=identity, additional_claims=claims)
+    print(f"Refreshed token for user {identity} with role {claims['role']}")
     return jsonify(access_token=new_access), 200
 
 

@@ -22,7 +22,7 @@
   border-bottom: 1px solid rgba(253,250,245,0.08);
 }
 .sidebar-brand a {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 18px;
   font-weight: 700;
   color: var(--white);

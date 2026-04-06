@@ -27,7 +27,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Montserrat', sans-serif;
   color: var(--ink);
   background:
     radial-gradient(circle at 10% -6%, rgba(38, 112, 142, 0.12), transparent 30%),
@@ -56,7 +56,7 @@ a { text-decoration: none; }
 }
 
 .top-nav .nav-logo {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 21px;
   font-weight: 700;
   color: var(--ocean-900);
@@ -288,7 +288,7 @@ a { text-decoration: none; }
 }
 
 .page-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   color: var(--ocean-900);
   font-size: clamp(30px, 4.2vw, 44px);
   line-height: 1.1;
@@ -424,7 +424,7 @@ a { text-decoration: none; }
 .auth-required .empty-icon { font-size: 40px; margin-bottom: 12px; }
 .empty-state h2,
 .auth-required h2 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   color: var(--ocean-900);
   font-size: 30px;
   margin-bottom: 8px;
@@ -483,7 +483,7 @@ a { text-decoration: none; }
   gap: 26px;
 }
 .footer-brand {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: 24px;
   color: #fff;
   margin-bottom: 8px;

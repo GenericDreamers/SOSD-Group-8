@@ -387,8 +387,6 @@ async function loadPending() {
 
 async function confirmPlace(id) {
   try {
-    /* Cập nhật Confirmed=1 qua PUT /map/api/places/<id> — nếu backend chưa có route này,
-       đây là PATCH tối giản; bạn cần thêm route vào maps/__init__.py (xem ghi chú bên dưới) */
     const res = await fetch(`/map/api/places/${id}/confirm`, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token }

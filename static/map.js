@@ -396,12 +396,12 @@ async function addMissingPlace(lat, lng, name, category, price, openingHours) {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('access_token')}` },
             body: JSON.stringify({ name, category, lat, lng, price, openingHours })
         });
-        
+        const result = await response.json();
         if (response.ok) {
-            alert('Đã gửi địa điểm. Vui lòng chờ quản trị viên xác nhận.');
+            alert(result.msg || 'Đã gửi địa điểm thành công. Vui lòng chờ quản trị viên xác nhận.');
             marker.remove();
         } else {
-            alert('Có lỗi khi gửi địa điểm.');
+            alert(result.msg || 'Có lỗi khi gửi địa điểm.');
         }
     } catch (error) {
         console.error('Error:', error);

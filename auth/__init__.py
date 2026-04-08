@@ -69,13 +69,6 @@ def refresh():
     return jsonify(access_token=new_access), 200
 
 
-@auth_bp.route("/api/me", methods=["GET"])
-@jwt_required()
-def me():
-    user = get_jwt_identity()
-    return jsonify(user), 200
-
-
 @auth_bp.route("/api/change-password", methods=["POST"])
 @jwt_required()
 def change_password():
@@ -110,7 +103,6 @@ def require_ownership_or_admin(func):
         if not requester:
             return jsonify({"msg": "Missing JWT"}), 401
 
-        # identity là string (user ID), user_id từ DB là int — cần ép kiểu để so sánh đúng
         if int(requester) != int(user_id):
             row = query_db("SELECT Role FROM Users WHERE ID = ?", [requester], one=True)
             if not row or row["Role"] != "Admin":
@@ -125,11 +117,10 @@ def admin_required(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        requester = get_jwt_identity()
+        requester = get_jwt().get("role")
         if not requester:
             return jsonify({"msg": "Missing JWT"}), 401
-        row = query_db("SELECT Role FROM Users WHERE ID = ?", [requester], one=True)
-        if not row or row["Role"] != "Admin":
+        if requester != "Admin":
             return jsonify({"msg": "Admin access required"}), 403
         return func(*args, **kwargs)
 

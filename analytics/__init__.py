@@ -11,7 +11,6 @@ analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 @admin_required
 def admin_list_users():
     users = query_db("SELECT ID, Email, Role FROM Users")
-    # sqlite3.Row cần chuyển sang dict để jsonify serialize được
     return jsonify([dict(u) for u in users]), 200
 
 @analytics_bp.route("/api/bookings/daily", methods=["GET"])
@@ -30,7 +29,6 @@ def bookings_daily():
         """,
         [start.isoformat(), end.isoformat()]
     )
-    # sqlite3.Row dùng r["date"] chứ không phải r.date
     data = [{"date": r["date"], "bookings": r["count"]} for r in result]
     return jsonify(data), 200
 
@@ -38,7 +36,6 @@ def bookings_daily():
 @jwt_required()
 @admin_required
 def top_places():
-    # Viết subquery SQL inline thay vì JOIN Python list
     result = query_db(
         """
         SELECT p.ID as place_id, p.Name as name,

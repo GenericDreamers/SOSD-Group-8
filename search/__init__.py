@@ -23,11 +23,6 @@ def filter_places():
     conditions = []
     params = []
     
-    city = request.args.get("city")
-    if city:
-        conditions.append("City LIKE ?")
-        params.append(f"%{city}%")
-    
     min_price = request.args.get("price_min")
     if min_price:
         conditions.append("Price >= ?")

@@ -46,7 +46,7 @@
 .register-tag::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #1f5f42; }
 
 .register-intro h1 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   font-size: clamp(36px, 4.2vw, 54px);
   line-height: 1.08;
   color: #0f2d3a;
@@ -92,7 +92,7 @@
 }
 
 .register-card-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   color: #0f2d3a;
   font-size: 30px;
   line-height: 1.1;
@@ -124,7 +124,7 @@
   padding-top: 12px;
 }
 .register-legend {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Montserrat', sans-serif;
   color: #0f2d3a;
   font-size: 22px;
   margin-bottom: 10px;

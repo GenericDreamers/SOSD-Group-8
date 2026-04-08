@@ -102,7 +102,6 @@ def delete_itinerary(it_id):
     if not itinerary:
         return jsonify({"msg": "Itinerary not found"}), 404
     execute_db("DELETE FROM Itineraries WHERE ID = ?", [it_id])
-    execute_db("DELETE FROM ItineraryItems WHERE ItineraryID = ?", [it_id])
     return jsonify({"msg": "Itinerary deleted"}), 200
 
 # These are currently not used, may be useful in the future

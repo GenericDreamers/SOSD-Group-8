@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_jwt_extended import get_jwt, jwt_required
-from WebProgramming.groupProject1.main import admin_required
 from review import get_average
 from db import query_db, execute_db
 import requests
@@ -19,11 +18,15 @@ def nominatim_reverse():
     return resp.json().get("display_name", "Unknown location")
 
 
+@maps_bp.route("/api/places", methods=["GET"])
 @maps_bp.route("/api/places/<int:placeID>", methods=["GET"])
-def get_places(placeID):
-    places = query_db("SELECT * FROM Places WHERE ID = ?", [placeID])
+def get_places(placeID=None):
+    if placeID:
+        places = query_db("SELECT * FROM Places WHERE ID = ?", [placeID])
+    else:
+        places = query_db("SELECT * FROM Places")
     if not places:
-        return jsonify({"msg": "get_places API returned no places because the ID is invalid"}), 404
+        return jsonify({"msg": "get_places API returned no places"}), 404
 
     places = [{"id": str(p["ID"]), "lat": str(p["Latitude"]), "lng": str(p["Longitude"]), "name": p["Name"],
                "category": p["Category"], "price": str(p["Price"]), "opening_hours": p["Opening_hours"],
@@ -60,7 +63,7 @@ def add_place():
              data.get('opening_hours', "?"), confirmed])
 
         return jsonify({
-            'msg': msg
+            'message': msg
         }), 201
 
     except Exception as e:
@@ -70,8 +73,11 @@ def add_place():
 # ── Admin: duyệt địa điểm ──
 @maps_bp.route("/api/places/<int:placeID>/confirm", methods=["POST"])
 @jwt_required()
-@admin_required
 def confirm_place(placeID):
+    from auth import admin_required as _admin_required
+    isAdmin = get_jwt().get("role") == "Admin"
+    if not isAdmin:
+        return jsonify({"msg": "Admin access required"}), 403
     place = query_db("SELECT ID FROM Places WHERE ID = ?", [placeID], one=True)
     if not place:
         return jsonify({"msg": "Place not found"}), 404
@@ -82,8 +88,10 @@ def confirm_place(placeID):
 # ── Admin: xoá / từ chối địa điểm ──
 @maps_bp.route("/api/places/<int:placeID>", methods=["DELETE"])
 @jwt_required()
-@admin_required
 def delete_place(placeID):
+    isAdmin = get_jwt().get("role") == "Admin"
+    if not isAdmin:
+        return jsonify({"msg": "Admin access required"}), 403
     place = query_db("SELECT ID FROM Places WHERE ID = ?", [placeID], one=True)
     if not place:
         return jsonify({"msg": "Place not found"}), 404

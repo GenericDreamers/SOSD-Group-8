@@ -8,9 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='styles_pages.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='style_admin.css') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -387,8 +384,6 @@ async function loadPending() {
 
 async function confirmPlace(id) {
   try {
-    /* Cập nhật Confirmed=1 qua PUT /map/api/places/<id> — nếu backend chưa có route này,
-       đây là PATCH tối giản; bạn cần thêm route vào maps/__init__.py (xem ghi chú bên dưới) */
     const res = await fetch(`/map/api/places/${id}/confirm`, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token }

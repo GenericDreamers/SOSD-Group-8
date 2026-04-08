@@ -59,7 +59,7 @@
   to   { transform: scale(1);   opacity: 1; }
 }
 .success-title {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Playfair Display', serif;
   font-size: 26px; font-weight: 700;
   margin-bottom: 10px;
 }

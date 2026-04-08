@@ -47,7 +47,7 @@
 .login-tag::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #26708e; }
 
 .login-intro h1 {
-  font-family: 'Montserrat', san-serif;
+  font-family: 'Playfair Display', serif;
   font-size: clamp(36px, 4.2vw, 54px);
   line-height: 1.08;
   color: #0f2d3a;
@@ -92,7 +92,7 @@
 }
 
 .login-card-title {
-  font-family: 'Montserrat', san-serif;
+  font-family: 'Playfair Display', serif;
   color: #0f2d3a;
   font-size: 30px;
   line-height: 1.1;

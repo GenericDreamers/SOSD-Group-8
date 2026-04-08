@@ -36,14 +36,8 @@ def login():
     user = query_db("SELECT * FROM Users WHERE Email = ?", [data["email"]], one=True)
     if not user or not check_password_hash(user['Password'], data["password"]):
         return jsonify({"msg": "Invalid credentials"}), 401
-    profile = query_db("SELECT Username FROM UserProfiles WHERE UserID = ?", [user["ID"]], one=True)
-    claims = {
-        "role": user["Role"],
-        "email": user["Email"],
-        "username": profile["Username"] if profile and profile["Username"] else ""
-    }
-    access = create_access_token(identity=str(user["ID"]), additional_claims=claims)
-    refresh = create_refresh_token(identity=str(user["ID"]), additional_claims=claims)
+    access = create_access_token(identity=str(user["ID"]), additional_claims={"role": user["Role"]})
+    refresh = create_refresh_token(identity=str(user["ID"]), additional_claims={"role": user["Role"]})
     return jsonify(access_token=access, refresh_token=refresh), 200
 
 
@@ -51,29 +45,10 @@ def login():
 @jwt_required(refresh=True)
 def refresh():
     identity = get_jwt_identity()
-    row = query_db(
-        """SELECT u.Role, u.Email, up.Username
-           FROM Users u
-           LEFT JOIN UserProfiles up ON up.UserID = u.ID
-           WHERE u.ID = ?""",
-        [identity],
-        one=True
-    )
-    claims = {
-        "role": row["Role"] if row and row["Role"] else "User",
-        "email": row["Email"] if row and row["Email"] else "",
-        "username": row["Username"] if row and row["Username"] else ""
-    }
-    new_access = create_access_token(identity=identity, additional_claims=claims)
-    print(f"Refreshed token for user {identity} with role {claims['role']}")
+    user_role = get_jwt().get("role", "User")
+    new_access = create_access_token(identity=identity, additional_claims={"role": user_role})
+    print(f"Refreshed token for user {identity} with role {user_role}")
     return jsonify(access_token=new_access), 200
-
-
-@auth_bp.route("/api/me", methods=["GET"])
-@jwt_required()
-def me():
-    user = get_jwt_identity()
-    return jsonify(user), 200
 
 
 @auth_bp.route("/api/change-password", methods=["POST"])
@@ -110,7 +85,6 @@ def require_ownership_or_admin(func):
         if not requester:
             return jsonify({"msg": "Missing JWT"}), 401
 
-        # identity là string (user ID), user_id từ DB là int — cần ép kiểu để so sánh đúng
         if int(requester) != int(user_id):
             row = query_db("SELECT Role FROM Users WHERE ID = ?", [requester], one=True)
             if not row or row["Role"] != "Admin":
@@ -125,11 +99,10 @@ def admin_required(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        requester = get_jwt_identity()
+        requester = get_jwt().get("role")
         if not requester:
             return jsonify({"msg": "Missing JWT"}), 401
-        row = query_db("SELECT Role FROM Users WHERE ID = ?", [requester], one=True)
-        if not row or row["Role"] != "Admin":
+        if requester != "Admin":
             return jsonify({"msg": "Admin access required"}), 403
         return func(*args, **kwargs)
 

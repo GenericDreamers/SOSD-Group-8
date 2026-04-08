@@ -182,16 +182,6 @@
   if(t && valid(t)){
     const isAdmin = role(t) === 'admin';
     el.innerHTML = `
-      <div class="map-bell-wrap">
-        <button class="map-bell" id="map-bell-btn" aria-label="Thông báo">🔔<span class="map-bell-count" id="map-bell-count">0</span></button>
-        <div class="map-notify-dropdown" id="map-notify-dropdown">
-          <div class="map-notify-head">
-            <span>Thông báo</span>
-            <button type="button" id="map-mark-read-btn">Đánh dấu đã đọc</button>
-          </div>
-          <div class="map-notify-list" id="map-notify-list"></div>
-        </div>
-      </div>
       <div class="map-user">
         <div class="map-avatar">${initial(t)}</div>
         <div class="map-dropdown">
@@ -202,87 +192,6 @@
           <a href="#" class="logout" onclick="(function(){localStorage.removeItem('access_token');localStorage.removeItem('refresh_token');window.location.href='/';})();return false;">Đăng xuất</a>
         </div>
       </div>`;
-
-    const bellBtn = document.getElementById('map-bell-btn');
-    const bellCount = document.getElementById('map-bell-count');
-    const notifyDropdown = document.getElementById('map-notify-dropdown');
-    const notifyList = document.getElementById('map-notify-list');
-    const markReadBtn = document.getElementById('map-mark-read-btn');
-
-    function esc(v){
-      return String(v || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    function iconForType(type){
-      if (type === 'payment') return { cls: 'type-payment', icon: '💳' };
-      if (type === 'booking') return { cls: 'type-booking', icon: '📅' };
-      if (type === 'itinerary') return { cls: 'type-itinerary', icon: '🧭' };
-      return { cls: 'type-info', icon: '🔔' };
-    }
-
-    function renderNotifications(){
-      const list = (window.SmartNotify && window.SmartNotify.getAll) ? window.SmartNotify.getAll() : [];
-      const unread = (window.SmartNotify && window.SmartNotify.unreadCount) ? window.SmartNotify.unreadCount() : 0;
-      bellCount.style.display = unread > 0 ? 'inline-flex' : 'none';
-      bellCount.textContent = unread > 9 ? '9+' : String(unread);
-
-      if (!list.length) {
-        notifyList.innerHTML = '<div class="map-notify-empty">Chưa có thông báo nào</div>';
-        return;
-      }
-
-      notifyList.innerHTML = list.map(n => {
-        const dot = n.read ? '' : '<span class="map-notify-dot"></span>';
-        const time = new Date(n.createdAt).toLocaleString('vi-VN');
-        const icon = iconForType(n.type);
-        return `
-          <div class="map-notify-item ${n.read ? '' : 'unread'}">
-            <div class="map-notify-title-row">${dot}<span class="map-notify-type-icon ${icon.cls}">${icon.icon}</span><strong>${esc(n.title)}</strong></div>
-            <p>${esc(n.message || '')}</p>
-            <div class="map-notify-meta">
-              <time>${time}</time>
-              <button type="button" class="map-notify-remove" data-id="${esc(n.id)}">Xóa</button>
-            </div>
-          </div>`;
-      }).join('');
-    }
-
-    bellBtn.addEventListener('click', function(ev){
-      ev.stopPropagation();
-      notifyDropdown.classList.toggle('open');
-      renderNotifications();
-    });
-
-    markReadBtn.addEventListener('click', function(){
-      if (window.SmartNotify && window.SmartNotify.markAllRead) {
-        window.SmartNotify.markAllRead();
-      }
-      renderNotifications();
-    });
-
-    notifyList.addEventListener('click', function(ev){
-      const btn = ev.target.closest('.map-notify-remove');
-      if (!btn) return;
-      ev.stopPropagation();
-      if (window.SmartNotify && window.SmartNotify.removeById) {
-        window.SmartNotify.removeById(btn.dataset.id);
-      }
-      renderNotifications();
-    });
-
-    document.addEventListener('click', function(ev){
-      if (!notifyDropdown.contains(ev.target) && !bellBtn.contains(ev.target)) {
-        notifyDropdown.classList.remove('open');
-      }
-    });
-
-    window.addEventListener('smarttravel:notifications-updated', renderNotifications);
-    renderNotifications();
   } else {
     el.innerHTML = '<a href="/auth/login" class="map-login-btn">Đăng nhập</a>';
   }

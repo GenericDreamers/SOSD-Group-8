@@ -1,25 +1,10 @@
 (function () {
-  const STORAGE_KEY_PREFIX = 'smarttravel_notifications_v2_';
+  const STORAGE_KEY = 'smarttravel_notifications';
   const MAX_ITEMS = 30;
-
-  function parseJwt(token) {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch {
-      return null;
-    }
-  }
-
-  function getCurrentUserKey() {
-    const token = localStorage.getItem('access_token');
-    const payload = token ? parseJwt(token) : null;
-    const userId = payload && payload.sub ? String(payload.sub) : 'guest';
-    return STORAGE_KEY_PREFIX + userId;
-  }
 
   function readAll() {
     try {
-      const raw = localStorage.getItem(getCurrentUserKey());
+      const raw = localStorage.getItem(STORAGE_KEY);
       const list = raw ? JSON.parse(raw) : [];
       return Array.isArray(list) ? list : [];
     } catch {
@@ -28,7 +13,7 @@
   }
 
   function writeAll(list) {
-    localStorage.setItem(getCurrentUserKey(), JSON.stringify(list));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent('smarttravel:notifications-updated'));
   }
 

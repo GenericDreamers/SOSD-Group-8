@@ -19,9 +19,13 @@ def nominatim_reverse():
     return resp.json().get("display_name", "Unknown location")
 
 
+@maps_bp.route("/api/places", methods=["GET"])
 @maps_bp.route("/api/places/<int:placeID>", methods=["GET"])
-def get_places(placeID):
-    places = query_db("SELECT * FROM Places WHERE ID = ?", [placeID])
+def get_places(placeID=None):
+    if placeID:
+        places = query_db("SELECT * FROM Places WHERE ID = ?", [placeID])
+    else:
+        places = query_db("SELECT * FROM Places")
     if not places:
         return jsonify({"msg": "get_places API returned no places because the ID is invalid"}), 404
 

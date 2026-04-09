@@ -26,6 +26,14 @@ def process():
     amount = payload.get("amount", 0)
     user_id = user["id"] if isinstance(user, dict) else user
 
+    try:
+        amount = int(float(amount))
+    except (TypeError, ValueError):
+        return jsonify({"msg": "Số tiền thanh toán không hợp lệ."}), 400
+
+    if amount < 10000:
+        return jsonify({"msg": "Số tiền thanh toán tối thiểu là 10.000 VNĐ."}), 400
+
     # 1. Kiểm tra booking tồn tại (Giữ nguyên logic của bạn)
     booking = query_db("SELECT * FROM Bookings WHERE ID = ? AND UserID = ?", [booking_id, user_id], one=True)
     if not booking:
@@ -36,7 +44,7 @@ def process():
     # VNPAY bắt buộc mã giao dịch (TxnRef) phải là duy nhất, nên ta ghép thêm giờ phút giây vào
     vnp_TxnRef = f"{booking_id}_{datetime.now().strftime('%H%M%S')}" 
     vnp_OrderInfo = f"Thanh toan don dat cho {booking_id}"
-    vnp_Amount = int(amount) * 100 # Quy định của VNPAY: Tiền phải nhân 100
+    vnp_Amount = amount * 100 # Quy định của VNPAY: Tiền phải nhân 100
 
     vnpay_data = {
         "vnp_Version": "2.1.0",
@@ -87,6 +95,21 @@ def vnpay_return():
     hash_secret = VNPAY_CONFIG["vnp_HashSecret"].encode('utf-8')
     sign_value = hmac.new(hash_secret, query_string.encode('utf-8'), hashlib.sha512).hexdigest()
 
+    failed_params = {"payment_status": "failed"}
+    if booking_id:
+        failed_params["booking_id"] = booking_id
+    if vnp_ResponseCode:
+        failed_params["vnp_code"] = vnp_ResponseCode
+    if vnp_TxnRef:
+        failed_params["payment_ref"] = vnp_TxnRef
+
+    success_params = {"payment_status": "success"}
+    if booking_id:
+        success_params["booking_id"] = booking_id
+    success_params["vnp_code"] = "00"
+    if vnp_TxnRef:
+        success_params["payment_ref"] = vnp_TxnRef
+
     if sign_value == vnp_SecureHash:
         if vnp_ResponseCode == '00': # Code '00' là quẹt thẻ thành công
             
@@ -104,10 +127,11 @@ def vnpay_return():
                                                f"Đơn đặt chỗ #{booking_id} đã thanh toán qua VNPAY.")
             except Exception:
                 pass
-            
-            return redirect("/user/profile") 
+
+            return redirect(f"/payment/?{urllib.parse.urlencode(success_params)}")
         
         else:
-            return f"Giao dịch thất bại. Mã lỗi VNPAY: {vnp_ResponseCode}", 400
+            return redirect(f"/payment/?{urllib.parse.urlencode(failed_params)}")
     else:
-        return "Cảnh báo: Sai chữ ký bảo mật!", 400
+        failed_params["vnp_code"] = "invalid_signature"
+        return redirect(f"/payment/?{urllib.parse.urlencode(failed_params)}")

@@ -21,6 +21,24 @@
 .payment-method-btn.active { border-color: var(--terracotta); background: #FDF0EE; color: var(--terracotta); }
 .payment-method-icon { font-size: 22px; margin-bottom: 6px; }
 
+.payment-reminder {
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border: 1px solid rgba(26,22,18,0.16);
+  border-left: 4px solid rgba(26,22,18,0.35);
+  border-radius: 8px;
+  background: #F7F4EF;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.payment-reminder.is-error {
+  border: 1px solid rgba(227, 106, 82, 0.35);
+  border-left-color: var(--terracotta);
+  background: #FFF7F4;
+}
+
 .price-summary {
   background: var(--sand);
   border-radius: 8px;

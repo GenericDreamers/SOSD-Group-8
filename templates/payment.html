@@ -44,6 +44,8 @@
       </button>
     </div>
 
+    <div id="method-reminder" class="payment-reminder"></div>
+
     <form id="payment-form">
       <div id="card-fields">
         <div class="form-group">
@@ -53,7 +55,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Ngày hết hạn</label>
-            <input type="text" placeholder="MM/YY" maxlength="5" id="card-expiry">
+            <input type="text" placeholder="DD/MM/YYYY" maxlength="10" id="card-expiry">
           </div>
           <div class="form-group">
             <label>CVV</label>
@@ -121,12 +123,37 @@ let currentTotalAmount = 0;
 function isValid(t){ if(!t) return false; try{ return JSON.parse(atob(t.split('.')[1])).exp*1000>Date.now(); }catch{return false;} }
 function showAlert(msg, type='success'){ const b=document.getElementById('alert-box'); b.innerHTML=`<div class="alert alert-${type}">${msg}</div>`; setTimeout(()=>b.innerHTML='',5000); }
 
+function getDefaultReminderMessage(){
+  if (selectedMethod === 'card') {
+    return 'Vui lòng nhập đầy đủ: Số thẻ, Ngày hết hạn (DD/MM/YYYY), CVV và Tên chủ thẻ trước khi thanh toán.';
+  }
+  if (selectedMethod === 'vnpay') {
+    return 'Vui lòng nhập số điện thoại liên kết VNPay trước khi thanh toán.';
+  }
+  if (selectedMethod === 'momo') {
+    return 'Vui lòng nhập số điện thoại liên kết ví MoMo trước khi thanh toán.';
+  }
+  return 'Vui lòng nhập đầy đủ thông tin thanh toán.';
+}
+
+function setMethodReminder(message, isError = false){
+  const reminderEl = document.getElementById('method-reminder');
+  if (!reminderEl) return;
+  reminderEl.textContent = message;
+  reminderEl.classList.toggle('is-error', isError);
+}
+
+function updateMethodReminder(){
+  setMethodReminder(getDefaultReminderMessage(), false);
+}
+
 function selectMethod(method, el){
   selectedMethod = method;
   document.querySelectorAll('.payment-method-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('card-fields').style.display = method==='card' ? 'block' : 'none';
   document.getElementById('ewallet-fields').style.display = (method==='vnpay'||method==='momo') ? 'block' : 'none';
+  updateMethodReminder();
 }
 
 function parseAmount(value){
@@ -134,13 +161,127 @@ function parseAmount(value){
   return Number.isFinite(amount) && amount > 0 ? amount : 0;
 }
 
+function validateSelectedMethodInputs(){
+  if (selectedMethod === 'card') {
+    const cardNumberRaw = (document.getElementById('card-number').value || '').trim();
+    const cardExpiry = (document.getElementById('card-expiry').value || '').trim();
+    const cardCvv = (document.getElementById('card-cvv').value || '').trim();
+    const cardName = (document.getElementById('card-name').value || '').trim();
+
+    if (!cardNumberRaw) {
+      return 'Vui lòng nhập số thẻ.';
+    }
+
+    const cardDigits = cardNumberRaw.replace(/\D/g, '');
+    if (cardDigits.length < 13 || cardDigits.length > 19) {
+      return 'Vui lòng nhập số thẻ hợp lệ (13-19 chữ số).';
+    }
+
+    if (!cardExpiry) {
+      return 'Vui lòng nhập ngày hết hạn theo định dạng DD/MM/YYYY.';
+    }
+
+    const expiryMatch = cardExpiry.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!expiryMatch) {
+      return 'Vui lòng nhập ngày hết hạn theo định dạng DD/MM/YYYY.';
+    }
+
+    const day = Number(expiryMatch[1]);
+    const month = Number(expiryMatch[2]);
+    const year = Number(expiryMatch[3]);
+    if (month < 1 || month > 12) {
+      return 'Tháng hết hạn không hợp lệ.';
+    }
+
+    if (day < 1 || day > 31) {
+      return 'Ngày hết hạn không hợp lệ.';
+    }
+
+    const expiryDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+    // Check that JS date did not overflow to another month/day.
+    if (
+      expiryDate.getFullYear() !== year ||
+      expiryDate.getMonth() !== (month - 1) ||
+      expiryDate.getDate() !== day
+    ) {
+      return 'Ngày hết hạn không hợp lệ.';
+    }
+
+    if (Number.isNaN(expiryDate.getTime()) || expiryDate < new Date()) {
+      return 'Thẻ đã hết hạn hoặc ngày hết hạn không hợp lệ.';
+    }
+
+    if (!cardCvv) {
+      return 'Vui lòng nhập CVV.';
+    }
+
+    if (!/^\d{3,4}$/.test(cardCvv)) {
+      return 'CVV phải gồm 3 hoặc 4 chữ số.';
+    }
+
+    if (!cardName) {
+      return 'Vui lòng nhập tên chủ thẻ.';
+    }
+
+    if (cardName.length < 3) {
+      return 'Vui lòng nhập tên chủ thẻ hợp lệ.';
+    }
+
+    return null;
+  }
+
+  if (selectedMethod === 'vnpay' || selectedMethod === 'momo') {
+    const walletPhone = (document.getElementById('wallet-phone').value || '').trim();
+    const phoneDigits = walletPhone.replace(/\D/g, '');
+
+    if (!walletPhone) {
+      return 'Vui lòng nhập số điện thoại liên kết ví trước khi thanh toán.';
+    }
+
+    if (!/^\d{9,11}$/.test(phoneDigits)) {
+      return 'Vui lòng nhập số điện thoại liên kết ví hợp lệ (9-11 số).';
+    }
+
+    return null;
+  }
+
+  return 'Phương thức thanh toán không hợp lệ.';
+}
+
 if(isValid(getTokenNow())){
   const token = getTokenNow();
   document.getElementById('auth-guard').style.display='none';
   document.getElementById('payment-content').style.display='block';
+  updateMethodReminder();
 
   const params = new URLSearchParams(window.location.search);
+  const paymentStatus = params.get('payment_status');
+  const vnpCode = params.get('vnp_code');
+  const paymentRef = params.get('payment_ref');
   const bookingId = params.get('booking_id');
+
+  if (paymentStatus === 'failed' || paymentStatus === 'success') {
+    const dedupeKey = `payment_notice_${paymentStatus}_${paymentRef || ''}_${bookingId || ''}_${vnpCode || ''}`;
+    const alreadyHandled = sessionStorage.getItem(dedupeKey) === '1';
+
+    if (!alreadyHandled) {
+      sessionStorage.setItem(dedupeKey, '1');
+
+      if (paymentStatus === 'success') {
+        showAlert('Thanh toán thành công.', 'success');
+        if (window.SmartNotify && window.SmartNotify.push) {
+          window.SmartNotify.push({
+            type: 'payment',
+            title: 'Thanh toán thành công',
+            message: bookingId ? `Đơn đặt chỗ #${bookingId} đã được thanh toán thành công.` : 'Thanh toán đã hoàn tất.'
+          });
+        }
+      } else {
+        const details = vnpCode ? ` (mã: ${vnpCode})` : '';
+        showAlert(`Thanh toán thất bại hoặc đã hủy.${details}`, 'error');
+      }
+    }
+  }
 
   if(bookingId){
     fetch('/booking/api/my', { headers:{ Authorization:'Bearer '+token } })
@@ -192,13 +333,29 @@ if(isValid(getTokenNow())){
     this.value = this.value.replace(/\D/g,'').replace(/(.{4})/g,'$1 ').trim().substring(0,19);
   });
   document.getElementById('card-expiry').addEventListener('input', function(){
-    this.value = this.value.replace(/\D/g,'').replace(/^(\d{2})(\d)/,'$1/$2').substring(0,5);
+    const digits = this.value.replace(/\D/g, '').substring(0, 8);
+    if (digits.length <= 2) {
+      this.value = digits;
+      return;
+    }
+    if (digits.length <= 4) {
+      this.value = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+      return;
+    }
+    this.value = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
   });
 
   document.getElementById('payment-form').addEventListener('submit', async function(e){
     e.preventDefault();
     if(!bookingId){ showAlert('Không có mã đặt chỗ.', 'error'); return; }
     if(currentTotalAmount <= 0){ showAlert('Địa điểm chưa có giá hợp lệ để thanh toán.', 'error'); return; }
+
+    const validationError = validateSelectedMethodInputs();
+    if (validationError) {
+      setMethodReminder(validationError, true);
+      return;
+    }
+
     const btn = e.submitter;
     btn.textContent = 'Đang xử lý...'; btn.disabled = true;
     const res = await fetch('/payment/api/process', {
@@ -208,13 +365,12 @@ if(isValid(getTokenNow())){
     });
     const data = await res.json();
     if(res.ok){
-      if(window.SmartNotify && window.SmartNotify.push){
-        window.SmartNotify.push({
-          type: 'payment',
-          title: 'Thanh toán thành công',
-          message: `Booking #${bookingId} đã được thanh toán.`
-        });
+      if (data.vnpay_url) {
+        window.location.href = data.vnpay_url;
+        return;
       }
+
+      // Fallback for non-VNPay flows that may complete directly in future.
       document.getElementById('payment-form-card').style.display='none';
       document.getElementById('booking-info').style.display='none';
       document.getElementById('success-card').style.display='block';

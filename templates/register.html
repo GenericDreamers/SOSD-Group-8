@@ -53,15 +53,16 @@
             <legend class="register-legend">Thông tin đăng nhập</legend>
             <div class="register-fieldset-inner">
               <div class="register-field">
-                <label for="email">Email <abbr title="bắt buộc">:*</abbr></label>
-                <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com" inputmode="email" aria-required="true">
+                <label for="email">Email<abbr title="bắt buộc">: *</abbr></label>
+                <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@gmail.com" inputmode="email" aria-required="true">
               </div>
               <div class="register-field">
-                <label for="password">Mật khẩu <abbr title="bắt buộc">:*</abbr></label>
-                <input type="password" id="password" name="password" autocomplete="new-password" required minlength="6" placeholder="Tối thiểu 6 ký tự" aria-required="true">
+                <label for="password">Mật khẩu<abbr title="bắt buộc">: *</abbr></label>
+                <input type="password" id="password" name="password" autocomplete="new-password" required placeholder="Tối thiểu 6 ký tự" aria-required="true">
               </div>
+              <p class="password-requirements">* Lưu ý: Mật khẩu phải gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số</p>
               <div class="register-field">
-                <label for="confirm-password">Xác nhận mật khẩu <abbr title="bắt buộc">:*</abbr></label>
+                <label for="confirm-password">Xác nhận mật khẩu<abbr title="bắt buộc">: *</abbr></label>
                 <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password" required placeholder="Nhập lại mật khẩu" aria-required="true" aria-describedby="register-password-hint">
               </div>
             </div>
@@ -72,15 +73,15 @@
             <legend class="register-legend">Hồ sơ cá nhân</legend>
             <div class="register-fieldset-inner">
               <div class="register-field">
-                <label for="username">Tên hiển thị <abbr title="bắt buộc">:*</abbr></label>
+                <label for="username">Tên hiển thị<abbr title="bắt buộc">: *</abbr></label>
                 <input type="text" id="username" name="username" autocomplete="username" required placeholder="Tên của bạn" aria-required="true">
               </div>
               <div class="register-field">
-                <label for="birthday">Ngày sinh <abbr title="bắt buộc">:*</abbr></label>
+                <label for="birthday">Ngày sinh<abbr title="bắt buộc">: *</abbr></label>
                 <input type="date" id="birthday" name="birthday" autocomplete="bday" required aria-required="true">
               </div>
               <div class="register-field">
-                <label for="gender">Giới tính <abbr title="bắt buộc">:*</abbr></label>
+                <label for="gender">Giới tính<abbr title="bắt buộc">: *</abbr></label>
                 <select id="gender" name="gender" required aria-required="true">
                   <option value="" disabled selected hidden>Chọn giới tính</option>
                   <option value="Female">Nữ</option>
@@ -141,30 +142,107 @@
   var hint = document.getElementById('register-password-hint');
   var alertEl = document.getElementById('register-alert');
   if (!form) return;
+  form.setAttribute('novalidate', 'true'); // tắt xác thực mặc định
 
   function showAlert(msg) {
     alertEl.textContent = msg;
     alertEl.style.display = 'block';
     alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
+
   function clearPasswordError() {
     if (hint) hint.hidden = true;
+
     var confirm = document.getElementById('confirm-password');
     if (confirm) confirm.removeAttribute('aria-invalid');
+
+    var pass = document.getElementById('password');
+    if (pass) pass.removeAttribute('aria-invalid');
   }
+
+  // validate password
+  function validatePassword(password) {
+    if (password.length < 6) 
+      return 'Mật khẩu phải có ít nhất 6 ký tự.';
+    if (!/[A-Z]/.test(password)) 
+      return 'Mật khẩu phải có ít nhất 1 chữ hoa.';
+    if (!/[a-z]/.test(password)) 
+      return 'Mật khẩu phải có ít nhất 1 chữ thường.';
+    if (!/[0-9]/.test(password)) 
+      return 'Mật khẩu phải có ít nhất 1 số.';
+    return null;
+  }
+
+  // validate profile
+  function checkProfileComplete() {
+    var username = document.getElementById('username');
+    var birthday = document.getElementById('birthday');
+    var gender = document.getElementById('gender');
+
+    if (!username || !birthday || !gender) return false;
+
+    if (username.value.trim() === '') {
+      showAlert('Vui lòng nhập tên hiển thị.');
+      username.focus();
+      return false;
+    }
+
+    if (birthday.value === '') {
+      showAlert('Vui lòng chọn ngày sinh.');
+      birthday.focus();
+      return false;
+    }
+
+    if (gender.value === '') {
+      showAlert('Vui lòng chọn giới tính.');
+      gender.focus();
+      return false;
+    }
+
+    return true;
+  }
+
+  function validateEmail(email) {
+    if (!email.trim()) {
+      return 'Vui lòng nhập email.';
+    }
+    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return 'Email không hợp lệ.';
+  }
+
+  return null;
+}
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     alertEl.style.display = 'none';
 
+    var emailEl = document.getElementById('email');
     var pass = document.getElementById('password');
     var confirm = document.getElementById('confirm-password');
-    if (!pass || !confirm) return;
+    if (!emailEl || !pass || !confirm) return;
+
+    var emailError = validateEmail(emailEl.value);
+    if (emailError) {
+      showAlert(emailError);
+      emailEl.focus();
+      return;
+    }
+
+    var passwordError = validatePassword(pass.value);
+    if (passwordError) {
+      showAlert(passwordError);
+      pass.focus();
+      return;
+    }
 
     if (pass.value !== confirm.value) {
-      confirm.setAttribute('aria-invalid', 'true');
-      if (hint) hint.hidden = false;
+      showAlert('Mật khẩu xác nhận không khớp.');
       confirm.focus();
+      return;
+    }
+    if (!checkProfileComplete()) {
       return;
     }
     clearPasswordError();
@@ -180,16 +258,23 @@
         method: 'POST',
         body: formData
       });
-      var data = await response.json();
+
+      var data;
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
+
       if (response.ok) {
         window.location.href = '/auth/login?registered=1';
       } else {
-        showAlert(data.error || data.msg || 'Đăng ký thất bại. Vui lòng thử lại.');
+        showAlert(data.error || data.msg || 'Đăng ký thất bại.');
         btn.textContent = 'Tạo tài khoản';
         btn.disabled = false;
       }
     } catch (err) {
-      showAlert('Lỗi kết nối đến máy chủ. Vui lòng thử lại.');
+      showAlert('Lỗi kết nối server.');
       btn.textContent = 'Tạo tài khoản';
       btn.disabled = false;
     }

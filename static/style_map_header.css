@@ -164,7 +164,7 @@ body {
 .map-dropdown {
   display: none;
   position: absolute;
-  top: 42px;
+  top: calc(100% + 6px);
   right: 0;
   min-width: 164px;
   border-radius: 12px;

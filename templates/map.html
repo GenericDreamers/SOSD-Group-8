@@ -170,6 +170,7 @@
 <script src="{{ url_for('static', filename='map-review.js') }}"></script>
 <script src="{{ url_for('static', filename='map-itinerary.js') }}"></script>
 <script src="{{ url_for('static', filename='tokenManager.js') }}"></script>
+<script src="{{ url_for('static', filename='sessionTimeout.js') }}"></script>
 <script>
 (function(){
   const t = localStorage.getItem('access_token');
@@ -285,6 +286,9 @@
     renderNotifications();
   } else {
     el.innerHTML = '<a href="/auth/login" class="map-login-btn">Đăng nhập</a>';
+  }
+  if (typeof window.initInactivityLogout === 'function') {
+    window.initInactivityLogout();
   }
 })();
 </script>

@@ -26,6 +26,8 @@
 </nav>
 
 <script src="{{ url_for('static', filename='notificationCenter.js') }}"></script>
+<script src="{{ url_for('static', filename='sessionTimeout.js') }}"></script>
+
 <script>
 (function() {
   let token = localStorage.getItem('access_token');
@@ -190,6 +192,9 @@
   }
 
   initAuthUI();
+  if (typeof window.initInactivityLogout === 'function') {
+    window.initInactivityLogout();
+  }
 })();
 </script>
 

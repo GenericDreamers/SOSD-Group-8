@@ -54,7 +54,7 @@ def get_average(placeID):
     for r in reviews:
         total += r["Stars"]
         count += 1
-    return (total/count)
+    return (total/count).__round__(1)
 
 @review_bp.route("/api/user/<int:placeID>", methods=["GET"])
 @jwt_required()

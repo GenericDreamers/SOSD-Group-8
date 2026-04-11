@@ -140,6 +140,36 @@ function showAlert(msg, type='success'){ const b=document.getElementById('alert-
 function getURLParam(name){ return new URLSearchParams(window.location.search).get(name); }
 function parsePrice(v){ const n = Number(v); return Number.isFinite(n) && n > 0 ? n : 0; }
 function formatVND(v){ return Number(v||0).toLocaleString('vi-VN') + ' VNĐ'; }
+
+function handlePaymentReturnStatusOnBooking(){
+  const paymentStatus = getURLParam('payment_status');
+  const bookingId = getURLParam('booking_id');
+  const vnpCode = getURLParam('vnp_code');
+  const paymentRef = getURLParam('payment_ref');
+
+  if (!paymentStatus) return;
+
+  const dedupeKey = `booking_payment_notice_${paymentStatus}_${paymentRef || ''}_${bookingId || ''}_${vnpCode || ''}`;
+  if (sessionStorage.getItem(dedupeKey) === '1') return;
+  sessionStorage.setItem(dedupeKey, '1');
+
+  if (paymentStatus === 'success') {
+    showAlert('Thanh toán thành công.', 'success');
+    if (window.SmartNotify && window.SmartNotify.push) {
+      window.SmartNotify.push({
+        type: 'payment',
+        title: 'Thanh toán thành công',
+        message: bookingId ? `Đơn đặt chỗ #${bookingId} đã được thanh toán thành công.` : 'Thanh toán đã hoàn tất.'
+      });
+    }
+    return;
+  }
+
+  if (paymentStatus === 'failed') {
+    const details = vnpCode ? ` (mã: ${vnpCode})` : '';
+    showAlert(`Thanh toán thất bại hoặc đã hủy.${details}`, 'error');
+  }
+}
 function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.classList.toggle('active', ['my-bookings','new-booking'][i]===name); });
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
@@ -276,6 +306,7 @@ function bookingDateText(booking){
 if(isValid(getTokenNow())){
   document.getElementById('auth-guard').style.display='none';
   document.getElementById('booking-content').style.display='block';
+  handlePaymentReturnStatusOnBooking();
   loadBookings();
   prefillBookingFromQuery();
 } else {

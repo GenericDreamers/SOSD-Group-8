@@ -37,7 +37,7 @@ app.register_blueprint(analytics_bp)
 
 @app.route("/")
 def index():
-    return render_template("index.html")\
+    return render_template("index.html")
 
 @app.route('/booking')
 def booking_page():

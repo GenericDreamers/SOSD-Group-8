@@ -128,7 +128,7 @@ def vnpay_return():
             except Exception:
                 pass
 
-            return redirect(f"/payment/?{urllib.parse.urlencode(success_params)}")
+            return redirect(f"/booking/?{urllib.parse.urlencode(success_params)}")
         
         else:
             return redirect(f"/payment/?{urllib.parse.urlencode(failed_params)}")

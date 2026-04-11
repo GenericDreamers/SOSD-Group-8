@@ -60,8 +60,8 @@ def add_place():
     try:
         execute_db(
             "INSERT INTO Places(Name, Category, Price, Latitude, Longitude, Opening_hours, Confirmed) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [data.get('name'), data.get('category'), data.get('price', "?"), float(lat), float(lng),
-             data.get('opening_hours', "?"), confirmed])
+            [data.get('name'), data.get('category'), data.get('price', "-"), float(lat), float(lng),
+             data.get('opening_hours', "-"), confirmed])
 
         return jsonify({
             'msg': msg

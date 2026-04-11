@@ -267,7 +267,7 @@ async function saveItinerary() {
         return;
     }
     
-    const name = prompt('Name your itinerary:');
+    const name = prompt('Hãy nhập tên cho hành trình này:');
     if (!name) return;
     
     try {
@@ -285,7 +285,7 @@ async function saveItinerary() {
         });
         
         if (response.ok) {
-            alert(`Itinerary "${name}" saved!`);
+            alert(`Hành trình "${name}" đã được lưu!`);
             if (window.SmartNotify && window.SmartNotify.push) {
                 window.SmartNotify.push({
                     type: 'itinerary',
@@ -293,7 +293,6 @@ async function saveItinerary() {
                     message: `Lịch trình "${name}" đã được lưu thành công.`
                 });
             }
-            itinerary.locations = [];
             renderItineraryList();
         }
     } catch (error) {
